@@ -3,7 +3,7 @@ using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace BinanceTradeBot_Backend.Communication
+namespace MTGProxyBuilder.Main.Classes
 {
 	public class APIInterface
 	{
@@ -16,6 +16,9 @@ namespace BinanceTradeBot_Backend.Communication
 		
 		public static async Task<HttpResponseMessage> Post(string apiUrl, params string[] parameters) =>
 				await Client.PostAsync(CreateUri(apiUrl, parameters), null);
+
+		public static async Task<HttpResponseMessage> PostWithBody(string apiUrl, string body, params string[] parameters) =>
+				await Client.PostAsync(CreateUri(apiUrl, parameters), new StringContent(body));
 
 		private static Uri CreateUri(string apiUrl, params string[] par)
 		{

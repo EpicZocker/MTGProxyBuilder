@@ -1,7 +1,7 @@
 ﻿using System.Windows.Controls;
 using System.Windows.Documents;
 
-namespace MTGProxyBuilder
+namespace MTGProxyBuilder.Main.Classes
 {
 	public static class ExtensionMethods
     {

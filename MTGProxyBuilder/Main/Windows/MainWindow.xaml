@@ -1,0 +1,36 @@
+﻿<Window x:Class="MTGProxyBuilder.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="MTGProxyBuilder"
+        Height="500" Width="500"
+        WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
+    <Grid Margin="10,5,10,5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="10*"/>
+            <RowDefinition Height="1*"/>
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="1*"/>
+                <RowDefinition Height="15*"/>
+            </Grid.RowDefinitions>
+            <TextBlock FontSize="18" TextAlignment="Justify" Grid.Row="0">Cards to print:</TextBlock>
+            <ScrollViewer Grid.Row="1">
+                <TextBox Name="Decklist" FontSize="18" AcceptsReturn="True"></TextBox>
+            </ScrollViewer>
+        </Grid>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Button Name="Settings" VerticalAlignment="Center" FontSize="18" Click="OpenSettingsWindow" Grid.Column="0" Margin="0,0,5,0">Settings</Button>
+            <Button Name="CustomizeCards" VerticalAlignment="Center" FontSize="18" Click="CustomizeCardsButtonClicked" Grid.Column="1" Margin="5,0,5,0">Customize cards</Button>
+            <Button Name="CreatePDFButton" VerticalAlignment="Center" FontSize="18" Click="CreatePDFButtonClicked" Grid.Column="2" Margin="5,0,0,0">Create PDF</Button>
+        </Grid>
+    </Grid>
+</Window>

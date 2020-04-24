@@ -6,8 +6,9 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using BinanceTradeBot_Backend.Communication;
 using Microsoft.WindowsAPICodePack.Dialogs;
+using MTGProxyBuilder.Main;
+using MTGProxyBuilder.Main.Classes;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf;
 using static System.Environment;
@@ -16,10 +17,12 @@ namespace MTGProxyBuilder
 {
 	public partial class MainWindow : Window
 	{
-		public MainWindow()
-		{
-			InitializeComponent();
-		}
+		private List<KeyValuePair<int, string>> CardsWithAmounts;
+		private bool FlipCards = false;
+
+		public SettingsFile Settings;
+
+		public MainWindow() => InitializeComponent();
 
 		public List<KeyValuePair<int, string>> InterpretCardlist()
 		{
@@ -46,6 +49,8 @@ namespace MTGProxyBuilder
 
 		private void CreatePDFButtonClicked(object sender, RoutedEventArgs e)
 		{
+			IsEnabled = false;
+
 			CommonOpenFileDialog dialog = new CommonOpenFileDialog
 			{
 				InitialDirectory = GetFolderPath(SpecialFolder.Desktop),
@@ -63,9 +68,6 @@ namespace MTGProxyBuilder
 
 					pw.ProgressBar.Maximum = cardAmounts.Count;
 
-					Decklist.IsEnabled = false;
-					CreatePDFButton.IsEnabled = false;
-
 					for (int i = 0; i < cardAmounts.Count; i++)
 					{
 						pw.TextBlock.Text = "Fetching Images, Progress: " + images.Count + "/" + cardAmounts.Count;
@@ -73,7 +75,7 @@ namespace MTGProxyBuilder
 
 						byte[] img = await GetImage(cardAmounts[i].Value);
 
-						if (FlipCards.IsChecked == true)
+						if (FlipCards == true)
 						{
 							byte[] backImg = await GetFlipImage(cardAmounts[i].Value);
 							if (backImg != null)
@@ -132,14 +134,31 @@ namespace MTGProxyBuilder
 					pdf.Save(dialog.FileName + "\\Proxies.pdf");
 					pdf.Close();
 					pw.Close();
-
-					Decklist.IsEnabled = true;
-					CreatePDFButton.IsEnabled = true;
 				});
 
 				pw.Show();
 				backgroundWorker.RunSynchronously();
 			}
+
+			IsEnabled = true;
+		}
+
+		private void CustomizeCardsButtonClicked(object sender, RoutedEventArgs e)
+		{
+			CardsWithAmounts = InterpretCardlist();
+
+			CustomizeCardsWindow ccw = new CustomizeCardsWindow();
+			ccw.HostWindow = this;
+			ccw.Show();
+			IsEnabled = false;
+		}
+
+		private void OpenSettingsWindow(object sender, RoutedEventArgs e)
+		{
+			SettingsWindow sw = new SettingsWindow();
+			sw.HostWindow = this;
+			sw.Show();
+			IsEnabled = false;
 		}
 
 		private async Task<byte[]> GetImage(string cardname)
@@ -153,7 +172,7 @@ namespace MTGProxyBuilder
 
 		private async Task<byte[]> GetFlipImage(string cardname)
 		{
-			if (FlipCards.IsChecked == true)
+			if (FlipCards == true)
 			{
 				HttpResponseMessage flipResp = await APIInterface.Get("/cards/named",
 					"exact=" + cardname, "format=image", "version=png", "face=back");
