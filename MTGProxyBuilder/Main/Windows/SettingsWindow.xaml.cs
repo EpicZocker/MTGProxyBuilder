@@ -1,10 +1,11 @@
 ﻿using System;
 using System.ComponentModel;
-using System.IO;
-using System.Net;
+using System.Text.RegularExpressions;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 using Microsoft.WindowsAPICodePack.Dialogs;
-using MTGProxyBuilder.Main.Classes;
+using MTGProxyBuilder.Properties;
 using static System.Environment;
 
 namespace MTGProxyBuilder.Main
@@ -12,20 +13,18 @@ namespace MTGProxyBuilder.Main
 	public partial class SettingsWindow : Window
 	{
 		public MainWindow HostWindow;
-		public SettingsFile File;
 
-		private string DefaultOutputDirectory;
+		private string ProxySizePercentage { get; set; }
 
 		public SettingsWindow()
 		{
 			InitializeComponent();
-			string[] settingsFile = System.IO.File.ReadAllLines(CurrentDirectory + "\\Settings.txt");
 		}
 
 		private void SettingsWindowClosing(object sender, CancelEventArgs e)
 		{
 			HostWindow.IsEnabled = true;
-			//Save Settings
+			Settings.Default.Save();
 		}
 
 		private void SelectButtonClicked(object sender, RoutedEventArgs e)
@@ -37,15 +36,18 @@ namespace MTGProxyBuilder.Main
 			};
 
 			if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
-			{
-				DefaultOutputDirectory = dialog.FileName;
-				DefaultOutputDirectoryBox.Text = DefaultOutputDirectory;
-			}
+				DefaultOutputDirectoryBox.Text = dialog.FileName;
 		}
 
-		private void SaveSettings()
+		private void DeleteButtonClicked(object sender, RoutedEventArgs e)
 		{
+			DefaultOutputDirectoryBox.Text = "";
+		}
 
+		private void InputCheck(object sender, TextCompositionEventArgs e)
+		{
+			Regex regex = new Regex("[^0-9]+");
+			e.Handled = regex.IsMatch(e.Text);
 		}
 	}
 }

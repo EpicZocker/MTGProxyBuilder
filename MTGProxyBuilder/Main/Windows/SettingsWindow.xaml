@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:properties="clr-namespace:MTGProxyBuilder.Properties"
         mc:Ignorable="d"
         Title="SettingsWindow"
         Height="300" Width="500"
@@ -10,21 +11,56 @@
         Closing="SettingsWindowClosing">
     <Grid Margin="10,5,10,5">
         <Grid.RowDefinitions>
-            <RowDefinition Height="1*"/>
-            <RowDefinition Height="1*"/>
-            <RowDefinition Height="1*"/>
-            <RowDefinition Height="1*"/>
-            <RowDefinition Height="1*"/>
-            <RowDefinition Height="1*"/>
+            <RowDefinition Height="5*"/>
+            <RowDefinition Height="7*"/>
+            <RowDefinition Height="5*"/>
+            <RowDefinition Height="7*"/>
+            <RowDefinition Height="7*"/>
+            <RowDefinition Height="7*"/>
         </Grid.RowDefinitions>
-        <TextBlock VerticalAlignment="Center" FontSize="18" Grid.Row="0">Default save location:</TextBlock>
+        <TextBlock Grid.Row="0" VerticalAlignment="Center" FontSize="18">Default save location:</TextBlock>
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="5*"/>
                 <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="1*"/>
             </Grid.ColumnDefinitions>
-            <TextBox Grid.Column="0" FontSize="18" Margin="0,5" Name="DefaultOutputDirectoryBox"></TextBox>
-            <Button Grid.Column="1" FontSize="18" Margin="5" Click="SelectButtonClicked">Select...</Button>
+            <TextBox Grid.Column="0" FontSize="18" Margin="0,5,5,5" Name="DefaultOutputDirectoryBox" VerticalContentAlignment="Center"
+                     Text="{Binding Source={x:Static properties:Settings.Default}, Path=DefaultOutputDirectory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+            <Button Grid.Column="1" FontSize="16" Margin="3" Click="SelectButtonClicked">Select...</Button>
+            <Button Grid.Column="2" FontSize="16" Margin="3" Click="DeleteButtonClicked">Delete</Button>
         </Grid>
+        <TextBlock Grid.Row="2" VerticalAlignment="Center" FontSize="18">Gaps between proxies:</TextBlock>
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="6*"/>
+                <ColumnDefinition Width="8*"/>
+                <ColumnDefinition Width="6*"/>
+                <ColumnDefinition Width="8*"/>
+                <ColumnDefinition Width="15*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" VerticalAlignment="Center" FontSize="18" Margin="0,5">Gap X:</TextBlock>
+            <TextBox Grid.Column="1" Name="GapX" Margin="0,5,5,5" FontSize="18" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                     Text="{Binding Source={x:Static properties:Settings.Default}, Path=GapX, Mode=TwoWay}" PreviewTextInput="InputCheck"></TextBox>
+            <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="18" Margin="5">Gap Y:</TextBlock>
+            <TextBox Grid.Column="3" Name="GapY" Margin="0,5,5,5" FontSize="18" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                     Text="{Binding Source={x:Static properties:Settings.Default}, Path=GapY, Mode=TwoWay}" PreviewTextInput="InputCheck"></TextBox>
+            <TextBlock Grid.Column="4" VerticalAlignment="Center" FontSize="18" Margin="5">1 Gap = 0.352mm</TextBlock>
         </Grid>
+        <Grid Grid.Row="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="8*"/>
+                <ColumnDefinition Width="10*"/>
+                <ColumnDefinition Width="3*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" VerticalAlignment="Center" FontSize="18" Margin="0,5,5,5">Proxy size percentage:</TextBlock>
+            <Slider Grid.Column="1" Name="PctSlider" Minimum="50" Maximum="150" VerticalAlignment="Center"
+                    Interval="1" Value="{Binding Path=Text, ElementName=PctTextBox, Mode=TwoWay}" Margin="5"
+                    TickFrequency="1" IsSnapToTickEnabled="True"></Slider>
+            <TextBox Grid.Column="2" Margin="5" Name="PctTextBox" FontSize="18" TextAlignment="Center" VerticalContentAlignment="Center"
+                    Text="{Binding Source={x:Static properties:Settings.Default}, Path=ProxySizePercentage, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="InputCheck">
+
+            </TextBox>
+        </Grid>
+    </Grid>
 </Window>

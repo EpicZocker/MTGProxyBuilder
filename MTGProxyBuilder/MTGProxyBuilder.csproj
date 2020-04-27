@@ -74,6 +74,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Settings.cs" />
     <Page Include="Main\Windows\CustomizeCardsWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -88,7 +89,6 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Main\Classes\CardAmount.cs" />
-    <Compile Include="Main\Classes\SettingsFile.cs" />
     <Compile Include="Main\Windows\CustomizeCardsWindow.xaml.cs">
       <DependentUpon>CustomizeCardsWindow.xaml</DependentUpon>
     </Compile>
@@ -132,7 +132,7 @@
     </EmbeddedResource>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
+      <Generator>PublicSettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
   </ItemGroup>

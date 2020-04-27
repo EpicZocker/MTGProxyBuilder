@@ -20,8 +20,6 @@ namespace MTGProxyBuilder
 		private List<KeyValuePair<int, string>> CardsWithAmounts;
 		private bool FlipCards = false;
 
-		public SettingsFile Settings;
-
 		public MainWindow() => InitializeComponent();
 
 		public List<KeyValuePair<int, string>> InterpretCardlist()
@@ -59,13 +57,16 @@ namespace MTGProxyBuilder
 
 			if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
 			{
-				ProgressWindow pw = new ProgressWindow();
-
 				Task backgroundWorker = new Task(async () =>
 				{
 					List<KeyValuePair<int, string>> cardAmounts = InterpretCardlist();
 					List<byte[]> images = new List<byte[]>();
 
+					if (cardAmounts.Count == 0)
+						return;
+
+					ProgressWindow pw = new ProgressWindow();
+					pw.Show();
 					pw.ProgressBar.Maximum = cardAmounts.Count;
 
 					for (int i = 0; i < cardAmounts.Count; i++)
@@ -136,7 +137,6 @@ namespace MTGProxyBuilder
 					pw.Close();
 				});
 
-				pw.Show();
 				backgroundWorker.RunSynchronously();
 			}
 
