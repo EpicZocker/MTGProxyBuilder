@@ -15,13 +15,8 @@ using System.Windows.Shapes;
 
 namespace MTGProxyBuilder.Main
 {
-	/// <summary>
-	/// Interaction logic for CustomizeCardsWindow.xaml
-	/// </summary>
 	public partial class CustomizeCardsWindow : Window
 	{
-		public MainWindow HostWindow;
-
 		public CustomizeCardsWindow()
 		{
 			InitializeComponent();
@@ -29,7 +24,7 @@ namespace MTGProxyBuilder.Main
 
 		private void CustomizeCardsWindowClosing(object sender, CancelEventArgs e)
 		{
-			HostWindow.IsEnabled = true;
+			Owner.IsEnabled = true;
 		}
 	}
 }

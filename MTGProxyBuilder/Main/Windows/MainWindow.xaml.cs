@@ -51,6 +51,7 @@ namespace MTGProxyBuilder
 		{
 			IsEnabled = false;
 			bool defaultDirectory = string.IsNullOrEmpty(UserSettings.DefaultOutputDirectory);
+			string fileName = UserSettings.DefaultFilename.EndsWith(".pdf") ? UserSettings.DefaultFilename : UserSettings.DefaultFilename + ".pdf";
 			CommonOpenFileDialog dialog = null;
 
 			Task backgroundWorker = new Task(async () =>
@@ -89,7 +90,7 @@ namespace MTGProxyBuilder
 					Thread.Sleep(100);
 				}
 
-				PdfDocument pdf = new PdfDocument("Proxies.pdf");
+				PdfDocument pdf = new PdfDocument();
 				PdfPage page = new PdfPage(pdf);
 				XGraphics draw = XGraphics.FromPdfPage(page);
 
@@ -130,9 +131,9 @@ namespace MTGProxyBuilder
 				}
 
 				if(defaultDirectory)
-					pdf.Save(dialog.FileName + Path.DirectorySeparatorChar + "Proxies.pdf");
+					pdf.Save(dialog.FileName + Path.DirectorySeparatorChar + fileName);
 				else
-					pdf.Save(UserSettings.DefaultOutputDirectory + Path.DirectorySeparatorChar + "Proxies.pdf");
+					pdf.Save(UserSettings.DefaultOutputDirectory + Path.DirectorySeparatorChar + fileName);
 				
 				pdf.Close();
 				pw.Close();
@@ -159,7 +160,7 @@ namespace MTGProxyBuilder
 			CardsWithAmounts = InterpretCardlist();
 
 			CustomizeCardsWindow ccw = new CustomizeCardsWindow();
-			ccw.HostWindow = this;
+			ccw.Owner = this;
 			ccw.Show();
 			IsEnabled = false;
 		}
@@ -167,7 +168,7 @@ namespace MTGProxyBuilder
 		private void OpenSettingsWindow(object sender, RoutedEventArgs e)
 		{
 			SettingsWindow sw = new SettingsWindow();
-			sw.HostWindow = this;
+			sw.Owner = this;
 			sw.Show();
 			IsEnabled = false;
 		}

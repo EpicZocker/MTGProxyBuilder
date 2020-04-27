@@ -14,5 +14,8 @@
     <Setting Name="ProxySizePercentage" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">100</Value>
     </Setting>
+    <Setting Name="DefaultFilename" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Proxies.pdf</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

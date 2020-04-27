@@ -1,5 +1,5 @@
-﻿using System;
-using System.ComponentModel;
+﻿using System.ComponentModel;
+using System.IO;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,8 +12,6 @@ namespace MTGProxyBuilder.Main
 {
 	public partial class SettingsWindow : Window
 	{
-		public MainWindow HostWindow;
-
 		private string ProxySizePercentage { get; set; }
 
 		public SettingsWindow()
@@ -23,7 +21,7 @@ namespace MTGProxyBuilder.Main
 
 		private void SettingsWindowClosing(object sender, CancelEventArgs e)
 		{
-			HostWindow.IsEnabled = true;
+			Owner.IsEnabled = true;
 			Settings.Default.Save();
 		}
 
@@ -36,7 +34,10 @@ namespace MTGProxyBuilder.Main
 			};
 
 			if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+			{
 				DefaultOutputDirectoryBox.Text = dialog.FileName;
+				Focus();
+			}
 		}
 
 		private void DeleteButtonClicked(object sender, RoutedEventArgs e)
@@ -44,10 +45,35 @@ namespace MTGProxyBuilder.Main
 			DefaultOutputDirectoryBox.Text = "";
 		}
 
-		private void InputCheck(object sender, TextCompositionEventArgs e)
+		private void NumberInputCheck(object sender, TextCompositionEventArgs e)
 		{
 			Regex regex = new Regex("[^0-9]+");
 			e.Handled = regex.IsMatch(e.Text);
+		}
+
+		private void CheckDirectory(object sender, RoutedEventArgs e)
+		{
+			TextBox tb = e.Source as TextBox;
+			if (!Directory.Exists(tb.Text))
+				tb.Text = "";
+		}
+
+		private void InputCheckRange(object sender, RoutedEventArgs e)
+		{
+			TextBox tb = e.Source as TextBox;
+			int num = int.Parse(tb.Text);
+			if (num < PctSlider.Minimum)
+				num = (int) PctSlider.Minimum;
+			if (num > PctSlider.Maximum)
+				num = (int) PctSlider.Maximum;
+			tb.Text = num.ToString();
+		}
+
+		private void FilenameInputCheck(object sender, RoutedEventArgs e)
+		{
+			TextBox tb = e.Source as TextBox;
+			if (string.IsNullOrEmpty(tb.Text))
+				tb.Text = "Proxies.pdf";
 		}
 	}
 }

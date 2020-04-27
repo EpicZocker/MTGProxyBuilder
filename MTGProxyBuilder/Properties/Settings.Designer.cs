@@ -70,5 +70,17 @@ namespace MTGProxyBuilder.Properties {
                 this["ProxySizePercentage"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Proxies.pdf")]
+        public string DefaultFilename {
+            get {
+                return ((string)(this["DefaultFilename"]));
+            }
+            set {
+                this["DefaultFilename"] = value;
+            }
+        }
     }
 }
