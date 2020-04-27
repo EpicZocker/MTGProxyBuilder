@@ -3,7 +3,7 @@
   <Profiles />
   <Settings>
     <Setting Name="DefaultOutputDirectory" Type="System.String" Scope="User">
-      <Value Profile="(Default)">Ein Directory</Value>
+      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="GapX" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">1</Value>

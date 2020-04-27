@@ -25,7 +25,7 @@ namespace MTGProxyBuilder.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("Ein Directory")]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string DefaultOutputDirectory {
             get {
                 return ((string)(this["DefaultOutputDirectory"]));
