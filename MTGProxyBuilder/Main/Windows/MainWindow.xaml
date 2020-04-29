@@ -5,32 +5,88 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="MTGProxyBuilder"
-        Height="500" Width="500"
-        WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
+        Height="500" Width="700"
+        MinHeight="500" MinWidth="700"
+        WindowStartupLocation="CenterScreen"
+        Keyboard.PreviewKeyDown="Window_PreviewKeyDown">
     <Grid Margin="10,5,10,5">
         <Grid.RowDefinitions>
             <RowDefinition Height="10*"/>
             <RowDefinition Height="1*"/>
         </Grid.RowDefinitions>
-        <Grid Grid.Row="0">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="1*"/>
-                <RowDefinition Height="15*"/>
-            </Grid.RowDefinitions>
-            <TextBlock FontSize="18" TextAlignment="Justify" Grid.Row="0">Cards to print:</TextBlock>
-            <ScrollViewer Grid.Row="1">
-                <TextBox Name="Decklist" FontSize="18" AcceptsReturn="True"></TextBox>
-            </ScrollViewer>
+        <Grid Grid.Row="0" Margin="0,0,5,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="2*"/>
+            </Grid.ColumnDefinitions>
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="15*"/>
+                </Grid.RowDefinitions>
+                <TextBlock FontSize="18" TextAlignment="Justify" Grid.Row="0" HorizontalAlignment="Center">Decklist</TextBlock>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                    <TextBox Name="Decklist" FontSize="18" AcceptsReturn="True"></TextBox>
+                </ScrollViewer>
+            </Grid>
+            <GridSplitter Grid.Column="0" Width="3" Background="Transparent"/>
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="15*"/>
+                </Grid.RowDefinitions>
+                <TextBlock FontSize="18" TextAlignment="Justify" Grid.Row="0" HorizontalAlignment="Center">Customize cards</TextBlock>
+                <DataGrid AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                          CanUserDeleteRows="False" CanUserReorderColumns="False" ColumnWidth="Auto"
+                          CanUserResizeRows="False" Name="CardGrid" Grid.Row="1"
+                          HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                    <DataGrid.ColumnHeaderStyle>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="FontSize" Value="18"/>
+                            <Setter Property="VerticalContentAlignment" Value="Center"/>
+                        </Style>
+                    </DataGrid.ColumnHeaderStyle>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Amount" Width="2*" Binding="{Binding Path=Amount}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    <Setter Property="FontSize" Value="18"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Cardname" Width="7*" Binding="{Binding Path=CardName}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="FontSize" Value="18"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTemplateColumn Header="Edition" Width="3*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <ComboBox ItemsSource="{Binding Path=EditionNames}" FontSize="18">
+                                    </ComboBox>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
         </Grid>
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition/>
                 <ColumnDefinition/>
                 <ColumnDefinition/>
+                <ColumnDefinition/>
             </Grid.ColumnDefinitions>
             <Button Name="Settings" VerticalAlignment="Center" FontSize="18" Click="OpenSettingsWindow" Grid.Column="0" Margin="0,0,5,0">Settings</Button>
-            <Button Name="CustomizeCards" VerticalAlignment="Center" FontSize="18" Click="CustomizeCardsButtonClicked" Grid.Column="1" Margin="5,0,5,0">Customize cards</Button>
-            <Button Name="CreatePDFButton" VerticalAlignment="Center" FontSize="18" Click="CreatePDFButtonClicked" Grid.Column="2" Margin="5,0,0,0">Create PDF</Button>
+            <Button Name="AddCustomImages" VerticalAlignment="Center" FontSize="18" Click="AddCustomImagesButtonClicked" Grid.Column="1" Margin="5,0,5,0">Add custom cards</Button>
+            <Button Name="ParseDecklist" VerticalAlignment="Center" FontSize="18" Click="ParseDecklistClicked" Grid.Column="2" Margin="5,0,5,0">Parse decklist</Button>
+            <Button Name="CreatePDFButton" VerticalAlignment="Center" FontSize="18" Click="CreatePDFButtonClicked" Grid.Column="3" Margin="5,0,0,0">Create PDF</Button>
         </Grid>
     </Grid>
 </Window>

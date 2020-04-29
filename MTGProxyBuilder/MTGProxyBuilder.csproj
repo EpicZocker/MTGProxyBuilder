@@ -75,10 +75,6 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Settings.cs" />
-    <Page Include="Main\Windows\CustomizeCardsWindow.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
     <Page Include="Main\Windows\MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -89,15 +85,12 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Main\Classes\CardAmount.cs" />
-    <Compile Include="Main\Windows\CustomizeCardsWindow.xaml.cs">
-      <DependentUpon>CustomizeCardsWindow.xaml</DependentUpon>
-    </Compile>
     <Compile Include="Main\Classes\ExtensionMethods.cs" />
     <Compile Include="Main\Windows\MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Page Include="Main\Windows\ProgressWindow.xaml">
+    <Page Include="Main\Windows\InfoWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -107,8 +100,8 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Main\Windows\ProgressWindow.xaml.cs">
-      <DependentUpon>ProgressWindow.xaml</DependentUpon>
+    <Compile Include="Main\Windows\InfoWindow.xaml.cs">
+      <DependentUpon>InfoWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Main\Windows\SettingsWindow.xaml.cs">
       <DependentUpon>SettingsWindow.xaml</DependentUpon>

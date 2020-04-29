@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace MTGProxyBuilder.Main.Classes
@@ -18,7 +19,7 @@ namespace MTGProxyBuilder.Main.Classes
 				await Client.PostAsync(CreateUri(apiUrl, parameters), null);
 
 		public static async Task<HttpResponseMessage> PostWithBody(string apiUrl, string body, params string[] parameters) =>
-				await Client.PostAsync(CreateUri(apiUrl, parameters), new StringContent(body));
+				await Client.PostAsync(CreateUri(apiUrl, parameters), new StringContent(body, Encoding.UTF8, "application/json"));
 
 		private static Uri CreateUri(string apiUrl, params string[] par)
 		{
