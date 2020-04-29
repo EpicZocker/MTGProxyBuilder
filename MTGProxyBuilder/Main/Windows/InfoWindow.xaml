@@ -12,6 +12,6 @@
             <TextBlock Name="TextBlock" TextWrapping="Wrap" TextAlignment="Center"
                        VerticalAlignment="Center" FontSize="16" Text="Creating PDF"/>
         </Border>
-        <ProgressBar Name="ProgressBar" Minimum="0" Margin="10,40,10,10"></ProgressBar>
+        <ProgressBar Name="ProgressBar" Minimum="0" Margin="10,40,10,10"/>
     </Grid>
 </Window>

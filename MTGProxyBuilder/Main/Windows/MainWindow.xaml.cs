@@ -65,6 +65,7 @@ namespace MTGProxyBuilder
 					return;
 
 				InfoWindow iw = new InfoWindow();
+				iw.Owner = this;
 				iw.Show();
 				iw.ProgressBar.Maximum = cardAmounts.Count;
 
@@ -77,7 +78,7 @@ namespace MTGProxyBuilder
 
 					if (cardAmounts[i].HasBackFace)
 					{
-						byte[] backImg = await GetFlipImage(cardAmounts[i].CardName);
+						byte[] backImg = await GetImage(cardAmounts[i].CardName, true);
 						if (backImg != null)
 							images.Add(backImg);
 					}
@@ -217,24 +218,12 @@ namespace MTGProxyBuilder
 			IsEnabled = false;
 		}
 
-		private async Task<byte[]> GetImage(string cardname)
+		private async Task<byte[]> GetImage(string cardname, bool isFlipImage = false)
 		{
 			HttpResponseMessage resp = await APIInterface.Get("/cards/named",
-				"exact=" + cardname, "format=image", "version=png");
+				"exact=" + cardname, "format=image", "version=png", isFlipImage ? "face=back" : "");
 			if(resp.IsSuccessStatusCode)
 				return await resp.Content.ReadAsByteArrayAsync();
-			return null;
-		}
-
-		private async Task<byte[]> GetFlipImage(string cardname)
-		{
-			if (FlipCards == true)
-			{
-				HttpResponseMessage flipResp = await APIInterface.Get("/cards/named",
-					"exact=" + cardname, "format=image", "version=png", "face=back");
-				if (flipResp.IsSuccessStatusCode)
-					return await flipResp.Content.ReadAsByteArrayAsync();
-			}
 			return null;
 		}
 
