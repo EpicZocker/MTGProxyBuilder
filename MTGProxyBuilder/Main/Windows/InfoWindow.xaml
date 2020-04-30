@@ -6,12 +6,12 @@
         mc:Ignorable="d"
         Title="Info" 
         Height="100 " Width="300"
-        ResizeMode="NoResize" WindowStartupLocation="CenterOwner">
+        ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False">
     <Grid>
-        <Border BorderBrush="{x:Null}" Margin="0,0,0,37">
-            <TextBlock Name="TextBlock" TextWrapping="Wrap" TextAlignment="Center"
-                       VerticalAlignment="Center" FontSize="16" Text="Creating PDF"/>
+        <Border BorderBrush="{x:Null}">
+            <TextBlock Name="TextBlock" TextWrapping="Wrap" FontSize="18"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Border>
-        <ProgressBar Name="ProgressBar" Minimum="0" Margin="10,40,10,10"/>
     </Grid>
 </Window>

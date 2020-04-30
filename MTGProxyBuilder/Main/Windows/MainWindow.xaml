@@ -70,8 +70,7 @@
                                 <DataTemplate>
                                     <ComboBox ItemsSource="{Binding Path=EditionNamesArtworkURLs}"
                                               DisplayMemberPath="Key" FontSize="18" Name="EditionComboBox"
-                                              SelectedItem="{Binding Path=SelectedEdition, UpdateSourceTrigger=PropertyChanged,
-                                              Mode=OneWayToSource}">
+                                              SelectedItem="{Binding Path=SelectedEdition, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}">
                                     </ComboBox>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>

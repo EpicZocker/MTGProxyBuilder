@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -26,7 +27,10 @@ namespace MTGProxyBuilder
 		private Settings UserSettings = Properties.Settings.Default;
 		private InfoWindow Info = new InfoWindow();
 
-		public MainWindow() => InitializeComponent();
+		public MainWindow()
+		{
+			InitializeComponent();
+		}
 
 		public List<CardAmount> InterpretCardlist()
 		{
@@ -63,14 +67,13 @@ namespace MTGProxyBuilder
 				List<byte[]> images = new List<byte[]>();
 				WebClient webClient = new WebClient();
 
+				Info.Show();
 				Info.Owner = this;
-				//Info.Show();
-				Info.ProgressBar.Maximum = CardsWithAmounts.Count;
+				IsEnabled = false;
 
 				foreach (CardAmount card in CardsWithAmounts)
 				{
 					Info.TextBlock.Text = "Fetching Images, Progress: " + images.Count + "/" + CardsWithAmounts.Count;
-					Info.ProgressBar.Value = images.Count;
 
 					string selEdition = card.SelectedEdition.TrimStart('[').Split(',')[0];
 					byte[] img = webClient.DownloadData(card.EditionNamesArtworkURLs.Find(e => e.Key == selEdition).Value);
@@ -133,6 +136,7 @@ namespace MTGProxyBuilder
 				
 				pdf.Close();
 				Info.Close();
+				IsEnabled = true;
 			});
 
 			if (defaultDirectory)
@@ -163,50 +167,70 @@ namespace MTGProxyBuilder
 
 		private void AddCustomImagesButtonClicked(object sender, RoutedEventArgs e)
 		{
-
+			MessageBox.Show("This function is not implemented.", "Not implemented");
 		}
 
 		private void CustomizeCardsClicked(object sender, RoutedEventArgs eventArgs)
 		{
-			new Task(async () =>
+			Task t = new Task(async () =>
 			{
+				Info.Show();
+				Info.Owner = this;
+				Info.TextBlock.Text = "Parsing decklist...";
+				IsEnabled = false;
+
 				HttpResponseMessage resp = await PullAllDecklistData();
 				JObject jo = JObject.Parse(resp.Content.ReadAsStringAsync().Result);
-				JToken not_found = jo["not_found"];
 				JToken data = jo["data"];
-
-				string notFoundList = "Cards not found: ";
-				foreach (JToken jt in not_found.Children())
-					notFoundList += jt["name"] + ", ";
-				notFoundList.TrimEnd(',', ' ');
-
 				List<CardAmount> allCards = InterpretCardlist();
-				foreach (JToken jt in data.Children())
+
+				//foreach (CardAmount currentCard in allCards)
+				//{
+
+				//}
+
+				foreach (JToken jt in data.Children()) //TODO Rewrite Loop
 				{
 					HttpResponseMessage prints_search_uri_resp = await APIInterface.Get("/cards/search",
 						jt["prints_search_uri"].Value<string>().Split('?')[1]);
 					JToken prints_search_uri = JToken.Parse(prints_search_uri_resp.Content.ReadAsStringAsync().Result);
 					List<KeyValuePair<string, string>> editionNames = new List<KeyValuePair<string, string>>();
 					List<string> cardNames = jt["name"].Value<string>().Split(new []{" // "}, StringSplitOptions.RemoveEmptyEntries).ToList();
+					CardAmount currentCard = allCards.Find(card => cardNames.Contains(card.CardName, StringComparer.OrdinalIgnoreCase));
 					foreach (JToken psu in prints_search_uri["data"])
 					{
 						string image_uri = psu["image_uris"] != null ? psu["image_uris"]["png"].Value<string>() :
 								           psu["card_faces"][0]["image_uris"]["png"].Value<string>();
 						editionNames.Add(new KeyValuePair<string, string>(psu["set_name"].Value<string>() + 
 										" (" + psu["set"].Value<string>().ToUpper() + ")", image_uri));
-						if (psu["card_faces"] != null && psu["layout"].Value<string>() != "adventure")
-							allCards.Find(card => cardNames.Contains(card.CardName, StringComparer.OrdinalIgnoreCase)).BackFaceURL =
-								psu["card_faces"][1]["image_uris"]["png"].Value<string>();
+						if (psu["card_faces"] != null && psu["layout"].Value<string>() == "transform")
+							currentCard.BackFaceURL = psu["card_faces"][1]["image_uris"]["png"].Value<string>();
 					}
-					allCards.Find(card => cardNames.Contains(card.CardName, StringComparer.OrdinalIgnoreCase)).EditionNamesArtworkURLs = editionNames;
-					allCards.Find(card => cardNames.Contains(card.CardName, StringComparer.OrdinalIgnoreCase)).DisplayName =
-						cardNames.Count > 1 ? cardNames[0] + " // " + cardNames[1] : cardNames[0];
+					currentCard.SelectedEdition = editionNames[0].Key;
+					currentCard.EditionNamesArtworkURLs = editionNames;
+					currentCard.DisplayName = cardNames.Count > 1 ? cardNames[0] + " // " + cardNames[1] : cardNames[0];
 				}
+				allCards.RemoveAll(e => e.EditionNamesArtworkURLs == null);
 				CardsWithAmounts = allCards;
 				CardGrid.ItemsSource = CardsWithAmounts;
 				CardGrid.Items.Refresh();
-				CreatePDFButton.IsEnabled = true;
-			}).RunSynchronously();
+				CreatePDFButton.IsEnabled = CardGrid.Items.Count != 0;
+				Info.Hide();
+				IsEnabled = true;
+
+				string notFoundList = jo["not_found"].Children().Aggregate("", (s, token) => s + "\"" + token["name"] + "\", ").TrimEnd(',', ' ');
+				if (!string.IsNullOrEmpty(notFoundList))
+					MessageBox.Show("Cards not found: " + notFoundList, "Cards not found");
+			});
+
+			if (CardGrid.Items.Count != 0)
+			{
+				if (MessageBox.Show("There seems to be data in the grid. Do you want to override it?",
+				                    "Override data?", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+					t.RunSynchronously();
+			}
+			else
+				t.RunSynchronously();
 		}
 
 		private async Task<HttpResponseMessage> PullAllDecklistData()
