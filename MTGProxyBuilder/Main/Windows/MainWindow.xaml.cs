@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,7 +13,6 @@ using Microsoft.WindowsAPICodePack.Dialogs;
 using MTGProxyBuilder.Main;
 using MTGProxyBuilder.Main.Classes;
 using MTGProxyBuilder.Properties;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf;
@@ -23,6 +24,7 @@ namespace MTGProxyBuilder
 	{
 		private List<CardAmount> CardsWithAmounts;
 		private Settings UserSettings = Properties.Settings.Default;
+		private InfoWindow Info = new InfoWindow();
 
 		public MainWindow() => InitializeComponent();
 
@@ -49,48 +51,37 @@ namespace MTGProxyBuilder
 			return cardAmounts;
 		}
 
-		private void CreatePDFButtonClicked(object sender, RoutedEventArgs e)
+		private void CreatePDFButtonClicked(object sender, RoutedEventArgs eventArgs)
 		{
 			IsEnabled = false;
 			bool defaultDirectory = string.IsNullOrEmpty(UserSettings.DefaultOutputDirectory);
 			string fileName = UserSettings.DefaultFilename.EndsWith(".pdf") ? UserSettings.DefaultFilename : UserSettings.DefaultFilename + ".pdf";
 			CommonOpenFileDialog dialog = null;
 
-			Task backgroundWorker = new Task(async () =>
+			Task backgroundWorker = new Task(() =>
 			{
-				List<CardAmount> cardAmounts = CardsWithAmounts ?? InterpretCardlist();
 				List<byte[]> images = new List<byte[]>();
+				WebClient webClient = new WebClient();
 
-				if (cardAmounts.Count == 0)
-					return;
+				Info.Owner = this;
+				//Info.Show();
+				Info.ProgressBar.Maximum = CardsWithAmounts.Count;
 
-				InfoWindow iw = new InfoWindow();
-				iw.Owner = this;
-				iw.Show();
-				iw.ProgressBar.Maximum = cardAmounts.Count;
-
-				for (int i = 0; i < cardAmounts.Count; i++)
+				foreach (CardAmount card in CardsWithAmounts)
 				{
-					iw.TextBlock.Text = "Fetching Images, Progress: " + images.Count + "/" + cardAmounts.Count;
-					iw.ProgressBar.Value = images.Count;
+					Info.TextBlock.Text = "Fetching Images, Progress: " + images.Count + "/" + CardsWithAmounts.Count;
+					Info.ProgressBar.Value = images.Count;
 
-					byte[] img = await GetImage(cardAmounts[i].CardName);
+					string selEdition = card.SelectedEdition.TrimStart('[').Split(',')[0];
+					byte[] img = webClient.DownloadData(card.EditionNamesArtworkURLs.Find(e => e.Key == selEdition).Value);
+					byte[] backFace = !string.IsNullOrEmpty(card.BackFaceURL) ? webClient.DownloadData(card.BackFaceURL) : null;
 
-					if (cardAmounts[i].HasBackFace)
+					for (int j = 0; j < card.Amount; j++)
 					{
-						byte[] backImg = await GetImage(cardAmounts[i].CardName, true);
-						if (backImg != null)
-							images.Add(backImg);
-					}
-
-					if (img == null)
-					{
-						Console.WriteLine(cardAmounts[i].CardName + " is not a valid card");
-						break;
-					}
-
-					for (int j = 0; j < cardAmounts[i].Amount; j++)
 						images.Add(img);
+						if (backFace != null)
+							images.Add(backFace);
+					}
 
 					Thread.Sleep(100);
 				}
@@ -141,7 +132,7 @@ namespace MTGProxyBuilder
 					pdf.Save(UserSettings.DefaultOutputDirectory + Path.DirectorySeparatorChar + fileName);
 				
 				pdf.Close();
-				iw.Close();
+				Info.Close();
 			});
 
 			if (defaultDirectory)
@@ -153,6 +144,8 @@ namespace MTGProxyBuilder
 				};
 				if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
 					backgroundWorker.RunSynchronously();
+				else
+					Focus();
 			}
 			else
 				backgroundWorker.RunSynchronously();
@@ -160,12 +153,20 @@ namespace MTGProxyBuilder
 			IsEnabled = true;
 		}
 
+		private void OpenSettingsWindow(object sender, RoutedEventArgs e)
+		{
+			SettingsWindow sw = new SettingsWindow();
+			sw.Owner = this;
+			sw.Show();
+			IsEnabled = false;
+		}
+
 		private void AddCustomImagesButtonClicked(object sender, RoutedEventArgs e)
 		{
 
 		}
 
-		private void ParseDecklistClicked(object sender, RoutedEventArgs e)
+		private void CustomizeCardsClicked(object sender, RoutedEventArgs eventArgs)
 		{
 			new Task(async () =>
 			{
@@ -176,8 +177,8 @@ namespace MTGProxyBuilder
 
 				string notFoundList = "Cards not found: ";
 				foreach (JToken jt in not_found.Children())
-					notFoundList += jt["name"] + ",";
-				notFoundList.TrimEnd(',');
+					notFoundList += jt["name"] + ", ";
+				notFoundList.TrimEnd(',', ' ');
 
 				List<CardAmount> allCards = InterpretCardlist();
 				foreach (JToken jt in data.Children())
@@ -185,18 +186,26 @@ namespace MTGProxyBuilder
 					HttpResponseMessage prints_search_uri_resp = await APIInterface.Get("/cards/search",
 						jt["prints_search_uri"].Value<string>().Split('?')[1]);
 					JToken prints_search_uri = JToken.Parse(prints_search_uri_resp.Content.ReadAsStringAsync().Result);
-					List<string> editionNames = new List<string>();
+					List<KeyValuePair<string, string>> editionNames = new List<KeyValuePair<string, string>>();
 					List<string> cardNames = jt["name"].Value<string>().Split(new []{" // "}, StringSplitOptions.RemoveEmptyEntries).ToList();
 					foreach (JToken psu in prints_search_uri["data"])
 					{
-						editionNames.Add(psu["set_name"].Value<string>() + " (" + psu["set"].Value<string>().ToUpper() + ")");
-						if (cardNames.Count > 1)
-							allCards.Find(card => cardNames.Contains(card.CardName)).HasBackFace = true;
+						string image_uri = psu["image_uris"] != null ? psu["image_uris"]["png"].Value<string>() :
+								           psu["card_faces"][0]["image_uris"]["png"].Value<string>();
+						editionNames.Add(new KeyValuePair<string, string>(psu["set_name"].Value<string>() + 
+										" (" + psu["set"].Value<string>().ToUpper() + ")", image_uri));
+						if (psu["card_faces"] != null && psu["layout"].Value<string>() != "adventure")
+							allCards.Find(card => cardNames.Contains(card.CardName, StringComparer.OrdinalIgnoreCase)).BackFaceURL =
+								psu["card_faces"][1]["image_uris"]["png"].Value<string>();
 					}
-					allCards.Find(card => cardNames.Contains(card.CardName)).EditionNames = editionNames;
+					allCards.Find(card => cardNames.Contains(card.CardName, StringComparer.OrdinalIgnoreCase)).EditionNamesArtworkURLs = editionNames;
+					allCards.Find(card => cardNames.Contains(card.CardName, StringComparer.OrdinalIgnoreCase)).DisplayName =
+						cardNames.Count > 1 ? cardNames[0] + " // " + cardNames[1] : cardNames[0];
 				}
 				CardsWithAmounts = allCards;
 				CardGrid.ItemsSource = CardsWithAmounts;
+				CardGrid.Items.Refresh();
+				CreatePDFButton.IsEnabled = true;
 			}).RunSynchronously();
 		}
 
@@ -210,27 +219,15 @@ namespace MTGProxyBuilder
 			return await APIInterface.PostWithBody("/cards/collection", body);
 		}
 
-		private void OpenSettingsWindow(object sender, RoutedEventArgs e)
-		{
-			SettingsWindow sw = new SettingsWindow();
-			sw.Owner = this;
-			sw.Show();
-			IsEnabled = false;
-		}
-
-		private async Task<byte[]> GetImage(string cardname, bool isFlipImage = false)
-		{
-			HttpResponseMessage resp = await APIInterface.Get("/cards/named",
-				"exact=" + cardname, "format=image", "version=png", isFlipImage ? "face=back" : "");
-			if(resp.IsSuccessStatusCode)
-				return await resp.Content.ReadAsByteArrayAsync();
-			return null;
-		}
-
-		private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+		private void DisableTab(object sender, KeyEventArgs e)
 		{
 			if (e.Key == Key.Tab)
 				e.Handled = true;
+		}
+
+		private void ApplicationClosing(object sender, CancelEventArgs e)
+		{
+			Exit(0);
 		}
 	}
 }
