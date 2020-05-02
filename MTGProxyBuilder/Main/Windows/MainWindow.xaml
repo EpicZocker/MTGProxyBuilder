@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="MTGProxyBuilder"
-        Height="500" Width="700"
-        MinHeight="500" MinWidth="700"
+        Height="500" Width="1000"
+        MinHeight="500" MinWidth="1000"
         WindowStartupLocation="CenterScreen"
         Keyboard.PreviewKeyDown="DisableTab"
         Closing="ApplicationClosing">
@@ -18,7 +18,7 @@
         <Grid Grid.Row="0" Margin="0,0,5,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1*"/>
-                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="3*"/>
             </Grid.ColumnDefinitions>
             <Grid Grid.Column="0">
                 <Grid.RowDefinitions>
@@ -57,7 +57,7 @@
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
-                        <DataGridTextColumn Header="Cardname" Width="7*" Binding="{Binding Path=DisplayName}">
+                        <DataGridTextColumn Header="Cardname" Width="5*" Binding="{Binding Path=DisplayName}">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="VerticalAlignment" Value="Center"/>
@@ -66,12 +66,13 @@
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
-                        <DataGridTemplateColumn Header="Edition" Width="3*">
+                        <DataGridTemplateColumn Header="Edition" Width="5*">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <ComboBox ItemsSource="{Binding Path=EditionNamesArtworkURLs}"
                                               DisplayMemberPath="Key" FontSize="18" Name="EditionComboBox"
-                                              SelectedItem="{Binding Path=SelectedEdition, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}">
+                                              SelectedItem="{Binding Path=SelectedEdition, UpdateSourceTrigger=PropertyChanged}"
+                                              SelectedIndex="0">
                                     </ComboBox>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>

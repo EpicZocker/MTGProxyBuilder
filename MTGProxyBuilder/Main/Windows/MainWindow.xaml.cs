@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -32,7 +34,7 @@ namespace MTGProxyBuilder
 			InitializeComponent();
 		}
 
-		public List<CardAmount> InterpretCardlist()
+		private List<CardAmount> InterpretCardlist()
 		{
 			string[] cards = null;
 			Dispatcher.Invoke(() => { cards = Decklist.Text.Split(new[] { NewLine }, StringSplitOptions.RemoveEmptyEntries); });
@@ -51,7 +53,7 @@ namespace MTGProxyBuilder
 				{
 					strAmount = "";
 				}
-				cardAmounts.Add(new CardAmount(){ Amount = amount, CardName = s.TrimStart(strAmount.ToCharArray()) });
+				cardAmounts.Add(new CardAmount(){ Amount = amount, CardName = s.TrimStart(strAmount.ToCharArray()).Trim() });
 			}
 			return cardAmounts;
 		}
@@ -95,7 +97,7 @@ namespace MTGProxyBuilder
 
 			foreach (CardAmount card in CardsWithAmounts)
 			{
-				Dispatcher.Invoke(() => { Info.TextBlock.Text = "Fetching Images, Progress: " + images.Count + "/" + CardsWithAmounts.Count; });
+				Dispatcher.Invoke(() => Info.TextBlock.Text = "Fetching Images, Progress: " + images.Count + "/" + CardsWithAmounts.Count );
 
 				string selEdition = card.SelectedEdition.TrimStart('[').Split(',')[0];
 				byte[] img = webClient.DownloadData(card.EditionNamesArtworkURLs.Find(e => e.Key == selEdition).Value);
@@ -111,7 +113,7 @@ namespace MTGProxyBuilder
 				Thread.Sleep(100);
 			}
 
-			Dispatcher.Invoke(() => { Info.TextBlock.Text = "Building PDF..."; });
+			Dispatcher.Invoke(() => Info.TextBlock.Text = "Building PDF..." );
 
 			PdfDocument pdf = new PdfDocument();
 			PdfPage page = new PdfPage(pdf);
@@ -133,6 +135,8 @@ namespace MTGProxyBuilder
 
 				for (int j = 1; j < remainingImages + 1; j++)
 				{
+					Dispatcher.Invoke(() => Info.TextBlock.Text = "Drawing images, Progress: " + (j + i * 9) + "/" + images.Count);
+
 					MemoryStream mem = new MemoryStream(images.Skip(i * 9).ToList()[j - 1]);
 					draw.DrawImage(XImage.FromStream(mem), x, y, cardWidth, cardHeight);
 					draw.Save();
@@ -198,16 +202,15 @@ namespace MTGProxyBuilder
 			});
 
 			HttpResponseMessage resp = await PullAllDecklistData();
-			JObject jo = JObject.Parse(resp.Content.ReadAsStringAsync().Result);
-			JToken data = jo["data"];
+			JObject pulledCards = JObject.Parse(resp.Content.ReadAsStringAsync().Result);
 			List<CardAmount> allCards = InterpretCardlist();
 
-			//["promo_types"] prerelease promostamped showcase nyxtouched judgegift ["full_art"] ["textless"]
+			//["promo_types"] prerelease promostamped judgegift
 			//https://scryfall.com/docs/api/layouts - Frame Effects
 			//https://scryfall.com/docs/api/cards
 			foreach (CardAmount currentCard in allCards)
 			{
-				foreach (JToken jt in data.Children())
+				foreach (JToken jt in pulledCards["data"].Children())
 				{
 					List<string> cardNames = jt["name"].Value<string>().Split(new[] { " // " }, StringSplitOptions.RemoveEmptyEntries).ToList();
 					if (cardNames.Contains(currentCard.CardName, StringComparer.OrdinalIgnoreCase))
@@ -218,11 +221,61 @@ namespace MTGProxyBuilder
 						List<KeyValuePair<string, string>> editionNames = new List<KeyValuePair<string, string>>();
 						foreach (JToken singlePrint in allPrints["data"])
 						{
-							string image_uri = singlePrint["image_uris"] != null ? singlePrint["image_uris"]["png"].Value<string>() :
-													   singlePrint["card_faces"][0]["image_uris"]["png"].Value<string>();
-							editionNames.Add(new KeyValuePair<string, string>(singlePrint["set_name"].Value<string>() +
-																			  " (" + singlePrint["set"].Value<string>().ToUpper() + ")", image_uri));
-							if (singlePrint["layout"].Value<string>() == "transform") //impl meld layout
+							List<string> specialEffects = new List<string>();
+							string specialEffectsStr = "";
+
+							if (singlePrint["full_art"].Value<bool>())
+								specialEffects.Add("Fullart");
+
+							if (singlePrint["textless"].Value<bool>())
+								specialEffects.Add("Textless");
+
+							if (singlePrint["frame"].Value<string>() == "future")
+								specialEffects.Add("Future Sight frame");
+
+							if (singlePrint["frame_effects"] != null)
+							{
+								Dictionary<string, string> frameEffects = new Dictionary<string, string>()
+								{
+									{"extendedart", "Extended art"},
+									{"showcase", "Showcase"},
+									{"inverted", "FNM promo"},
+									{"colorshifted", "Colorshifted"}
+								};
+								List<string> containedFrameEffects = singlePrint["frame_effects"].Children().Values<string>().ToList();
+								foreach (string s in containedFrameEffects)
+									if(frameEffects.ContainsKey(s))
+										specialEffects.Add(frameEffects[s]);
+							}
+
+							if (singlePrint["promo_types"] != null)
+							{
+								Dictionary<string, string> promoTypes = new Dictionary<string, string>()
+								{
+									{"prerelease", "Prerelease"},
+									{"datestamped", "Datestamped"},
+									{"promostamped", "Promostamped"},
+									{"judgegift", "Judge promo"},
+									{"buyabox", "Buy-a-Box promo"},
+									{"gameday", "Gameday promo"}
+								};
+								List<string> containedPromoTypes = singlePrint["promo_types"].Children().Values<string>().ToList();
+								foreach (string s in containedPromoTypes)
+									if(promoTypes.ContainsKey(s))
+										specialEffects.Add(promoTypes[s]);
+							}
+
+							if (specialEffects.Count > 0)
+								specialEffectsStr = specialEffects.Aggregate("", (s, listStr) => s + listStr + ", ")
+								                                  .TrimEnd(',', ' ').Insert(0, " [") + "]";
+
+							string setName = singlePrint["set_name"].Value<string>();
+							string setCode = singlePrint["set"].Value<string>().ToUpper();
+							string imageUri = singlePrint["image_uris"] != null ? singlePrint["image_uris"]["png"].Value<string>() :
+								singlePrint["card_faces"][0]["image_uris"]["png"].Value<string>();
+							editionNames.Add(new KeyValuePair<string, string>(setName + " (" + setCode + ")" + specialEffectsStr, imageUri));
+
+							if (singlePrint["layout"].Value<string>() == "transform")
 								currentCard.BackFaceURL = singlePrint["card_faces"][1]["image_uris"]["png"].Value<string>();
 						}
 						currentCard.SelectedEdition = editionNames[0].Key;
@@ -245,7 +298,7 @@ namespace MTGProxyBuilder
 				IsEnabled = true;
 			});
 
-			string notFoundList = jo["not_found"].Children().Aggregate("", (s, token) => s + "\"" + token["name"] + "\", ").TrimEnd(',', ' ');
+			string notFoundList = pulledCards["not_found"].Children().Aggregate("", (s, token) => s + "\"" + token["name"] + "\", ").TrimEnd(',', ' ');
 			if (!string.IsNullOrEmpty(notFoundList))
 				MessageBox.Show("Cards not found: " + notFoundList, "Cards not found");
 		}
