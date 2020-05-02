@@ -39,7 +39,7 @@
                 <TextBlock FontSize="18" TextAlignment="Justify" Grid.Row="0" HorizontalAlignment="Center">Customize cards</TextBlock>
                 <DataGrid AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                           CanUserDeleteRows="False" CanUserReorderColumns="False" ColumnWidth="Auto"
-                          CanUserResizeRows="False" Name="CardGrid" Grid.Row="1"
+                          CanUserResizeRows="False" Name="CardGrid" Grid.Row="1" HeadersVisibility="Column"
                           HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                     <DataGrid.ColumnHeaderStyle>
                         <Style TargetType="DataGridColumnHeader">
@@ -62,6 +62,7 @@
                                 <Style TargetType="TextBlock">
                                     <Setter Property="VerticalAlignment" Value="Center"/>
                                     <Setter Property="FontSize" Value="18"/>
+                                    <Setter Property="Margin" Value="5,0,0,0"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
