@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 
-namespace MTGProxyBuilder
+namespace MTGProxyBuilder.Main.Windows
 {
 	public partial class InfoWindow : Window
 	{

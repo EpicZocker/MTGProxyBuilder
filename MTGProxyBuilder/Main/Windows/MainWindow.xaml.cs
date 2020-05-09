@@ -1,18 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 using Microsoft.WindowsAPICodePack.Dialogs;
-using MTGProxyBuilder.Main;
 using MTGProxyBuilder.Main.Classes;
 using MTGProxyBuilder.Properties;
 using Newtonsoft.Json.Linq;
@@ -20,10 +19,12 @@ using PdfSharp.Drawing;
 using PdfSharp.Pdf;
 using static System.Environment;
 
-namespace MTGProxyBuilder
+namespace MTGProxyBuilder.Main.Windows
 {
 	public partial class MainWindow : Window
 	{
+		public List<CustomCardAmount> CustomCards;
+
 		private List<CardAmount> CardsWithAmounts;
 		private Settings UserSettings = Properties.Settings.Default;
 		private InfoWindow Info = new InfoWindow();
@@ -67,7 +68,8 @@ namespace MTGProxyBuilder
 				dialog = new CommonOpenFileDialog
 				{
 					InitialDirectory = GetFolderPath(SpecialFolder.Desktop),
-					IsFolderPicker = true
+					IsFolderPicker = true,
+					EnsureFileExists = true
 				};
 				if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
 				{
@@ -95,23 +97,28 @@ namespace MTGProxyBuilder
 				IsEnabled = false;
 			});
 
-			foreach (CardAmount card in CardsWithAmounts)
+			if (CardsWithAmounts != null)
 			{
-				Dispatcher.Invoke(() => Info.TextBlock.Text = "Fetching Images, Progress: " + images.Count + "/" + CardsWithAmounts.Count );
-
-				string selEdition = card.SelectedEdition.TrimStart('[').Split(',')[0];
-				byte[] img = webClient.DownloadData(card.EditionNamesArtworkURLs.Find(e => e.Key == selEdition).Value);
-				byte[] backFace = !string.IsNullOrEmpty(card.BackFaceURL) ? webClient.DownloadData(card.BackFaceURL) : null;
-
-				for (int j = 0; j < card.Amount; j++)
+				foreach (CardAmount card in CardsWithAmounts)
 				{
-					images.Add(img);
-					if (backFace != null)
-						images.Add(backFace);
-				}
+					Dispatcher.Invoke(() => Info.TextBlock.Text = "Fetching Images, Progress: " + images.Count + "/" + CardsWithAmounts.Count);
 
-				Thread.Sleep(100);
+					byte[] img = webClient.DownloadData(card.EditionNamesArtworkURLs.Find(e => e.Key == card.SelectedEdition).Value);
+					byte[] backFace = !string.IsNullOrEmpty(card.BackFaceURL) ? webClient.DownloadData(card.BackFaceURL) : null;
+
+					for (int j = 0; j < card.Amount; j++)
+					{
+						images.Add(img);
+						if (backFace != null)
+							images.Add(backFace);
+					}
+				}
 			}
+
+			if (CustomCards != null)
+				foreach (CustomCardAmount cca in CustomCards)
+					for(int i = 0; i < cca.Amount; i++)
+						images.Add(cca.CardImage);
 
 			Dispatcher.Invoke(() => Info.TextBlock.Text = "Building PDF..." );
 
@@ -126,8 +133,8 @@ namespace MTGProxyBuilder
 
 			for (int i = 0; i < Math.Ceiling(images.Count / 9f); i++)
 			{
-				float x = 0;
-				float y = 0;
+				float x = UserSettings.OffsetLeft;
+				float y = UserSettings.OffsetTop;
 
 				int remainingImages = images.Count - i * 9;
 				if (remainingImages > 9)
@@ -144,13 +151,13 @@ namespace MTGProxyBuilder
 						x += cardWidth + widthGap;
 					else
 					{
-						x = 0;
+						x = UserSettings.OffsetLeft;
 						y += cardHeight + heightGap;
 					}
 				}
 
-				x = 0;
-				y = 0;
+				x = UserSettings.OffsetLeft;
+				y = UserSettings.OffsetTop;
 
 				pdf.AddPage(page);
 				page = new PdfPage(pdf);
@@ -177,7 +184,10 @@ namespace MTGProxyBuilder
 
 		private void AddCustomImagesButtonClicked(object sender, RoutedEventArgs e)
 		{
-			MessageBox.Show("This function is not implemented.", "Not implemented");
+			CustomCardsWindow ccw = new CustomCardsWindow();
+			ccw.Owner = this;
+			ccw.Show();
+			IsEnabled = false;
 		}
 
 		private async void CustomizeCardsClicked(object sender, RoutedEventArgs eventArgs)
@@ -194,22 +204,22 @@ namespace MTGProxyBuilder
 		private async void ParseDecklist()
 		{
 			Dispatcher.Invoke(() => 
-			{ 
+			{
 				Info.Owner = this;
 				Info.TextBlock.Text = "Parsing decklist...";
 				IsEnabled = false;
 				Info.Show();
 			});
-
+			
 			HttpResponseMessage resp = await PullAllDecklistData();
 			JObject pulledCards = JObject.Parse(resp.Content.ReadAsStringAsync().Result);
 			List<CardAmount> allCards = InterpretCardlist();
+			int progress = 0;
 
-			//["promo_types"] prerelease promostamped judgegift
-			//https://scryfall.com/docs/api/layouts - Frame Effects
-			//https://scryfall.com/docs/api/cards
 			foreach (CardAmount currentCard in allCards)
 			{
+				progress++;
+				Dispatcher.Invoke(() => Info.TextBlock.Text = "Parsing decklist, Progress: " + progress + "/" + allCards.Count);
 				foreach (JToken jt in pulledCards["data"].Children())
 				{
 					List<string> cardNames = jt["name"].Value<string>().Split(new[] { " // " }, StringSplitOptions.RemoveEmptyEntries).ToList();
@@ -278,6 +288,7 @@ namespace MTGProxyBuilder
 							if (singlePrint["layout"].Value<string>() == "transform")
 								currentCard.BackFaceURL = singlePrint["card_faces"][1]["image_uris"]["png"].Value<string>();
 						}
+						editionNames.Reverse();
 						currentCard.SelectedEdition = editionNames[0].Key;
 						currentCard.EditionNamesArtworkURLs = editionNames;
 						currentCard.DisplayName = cardNames.Count > 1 ? cardNames[0] + " // " + cardNames[1] : cardNames[0];
@@ -297,7 +308,6 @@ namespace MTGProxyBuilder
 				Info.Hide();
 				IsEnabled = true;
 			});
-
 			string notFoundList = pulledCards["not_found"].Children().Aggregate("", (s, token) => s + "\"" + token["name"] + "\", ").TrimEnd(',', ' ');
 			if (!string.IsNullOrEmpty(notFoundList))
 				MessageBox.Show("Cards not found: " + notFoundList, "Cards not found");
@@ -306,6 +316,10 @@ namespace MTGProxyBuilder
 		private async Task<HttpResponseMessage> PullAllDecklistData()
 		{
 			List<CardAmount> cards = InterpretCardlist().GroupBy(e => e.CardName).Select(e => e.First()).ToList();
+			if (cards.Count > 75)
+			{
+				//fixed crash when trying to parse more than 75 cards
+			}
 			JArray collection = new JArray();
 			foreach (CardAmount ca in cards)
 				collection.Add(JToken.Parse("{\"name\":\"" + ca.CardName + "\"}"));

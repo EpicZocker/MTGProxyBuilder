@@ -74,7 +74,15 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Main\Classes\CustomCardAmount.cs" />
+    <Compile Include="Main\Windows\CustomCardsWindow.xaml.cs">
+      <DependentUpon>CustomCardsWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Settings.cs" />
+    <Page Include="Main\Windows\CustomCardsWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Main\Windows\MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

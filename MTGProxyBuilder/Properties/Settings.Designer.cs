@@ -82,5 +82,29 @@ namespace MTGProxyBuilder.Properties {
                 this["DefaultFilename"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10")]
+        public int OffsetLeft {
+            get {
+                return ((int)(this["OffsetLeft"]));
+            }
+            set {
+                this["OffsetLeft"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10")]
+        public int OffsetTop {
+            get {
+                return ((int)(this["OffsetTop"]));
+            }
+            set {
+                this["OffsetTop"] = value;
+            }
+        }
     }
 }

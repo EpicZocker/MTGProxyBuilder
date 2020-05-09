@@ -8,7 +8,7 @@ using Microsoft.WindowsAPICodePack.Dialogs;
 using MTGProxyBuilder.Properties;
 using static System.Environment;
 
-namespace MTGProxyBuilder.Main
+namespace MTGProxyBuilder.Main.Windows
 {
 	public partial class SettingsWindow : Window
 	{
@@ -74,6 +74,12 @@ namespace MTGProxyBuilder.Main
 			TextBox tb = e.Source as TextBox;
 			if (string.IsNullOrEmpty(tb.Text))
 				tb.Text = "Proxies.pdf";
+		}
+
+		private void PreventPaste(object sender, ExecutedRoutedEventArgs e)
+		{
+			if (e.Command == ApplicationCommands.Copy || e.Command == ApplicationCommands.Cut || e.Command == ApplicationCommands.Paste)
+				e.Handled = true;
 		}
 	}
 }

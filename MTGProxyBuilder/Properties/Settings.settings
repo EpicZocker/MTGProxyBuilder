@@ -17,5 +17,11 @@
     <Setting Name="DefaultFilename" Type="System.String" Scope="User">
       <Value Profile="(Default)">Proxies.pdf</Value>
     </Setting>
+    <Setting Name="OffsetLeft" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">10</Value>
+    </Setting>
+    <Setting Name="OffsetTop" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">10</Value>
+    </Setting>
   </Settings>
 </SettingsFile>
