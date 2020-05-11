@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -90,8 +89,9 @@ namespace MTGProxyBuilder.Main.Windows
 			List<byte[]> images = new List<byte[]>();
 			WebClient webClient = new WebClient();
 
-			Dispatcher.Invoke(() => 
+			Dispatcher.Invoke(() =>
 			{
+				Info.TextBlock.Text = "Fetching images...";
 				Info.Show();
 				Info.Owner = this;
 				IsEnabled = false;
@@ -101,9 +101,9 @@ namespace MTGProxyBuilder.Main.Windows
 			{
 				foreach (CardAmount card in CardsWithAmounts)
 				{
-					Dispatcher.Invoke(() => Info.TextBlock.Text = "Fetching Images, Progress: " + images.Count + "/" + CardsWithAmounts.Count);
-
-					byte[] img = webClient.DownloadData(card.EditionNamesArtworkURLs.Find(e => e.Key == card.SelectedEdition).Value);
+					Dispatcher.Invoke(() => Info.TextBlock.Text = "Fetching images, Progress: " + images.Count + "/" + CardsWithAmounts.Count);
+					
+					byte[] img = webClient.DownloadData(card.ArtworkURLs[card.EditionNames.IndexOf(card.SelectedEdition)]);
 					byte[] backFace = !string.IsNullOrEmpty(card.BackFaceURL) ? webClient.DownloadData(card.BackFaceURL) : null;
 
 					for (int j = 0; j < card.Amount; j++)
@@ -228,7 +228,8 @@ namespace MTGProxyBuilder.Main.Windows
 						HttpResponseMessage allPrintsResp = await APIInterface.Get("/cards/search",
 							jt["prints_search_uri"].Value<string>().Split('?')[1]);
 						JToken allPrints = JToken.Parse(allPrintsResp.Content.ReadAsStringAsync().Result);
-						List<KeyValuePair<string, string>> editionNames = new List<KeyValuePair<string, string>>();
+						List<string> editionNames = new List<string>();
+						List<string> artworkURLs = new List<string>();
 						foreach (JToken singlePrint in allPrints["data"])
 						{
 							List<string> specialEffects = new List<string>();
@@ -242,6 +243,9 @@ namespace MTGProxyBuilder.Main.Windows
 
 							if (singlePrint["frame"].Value<string>() == "future")
 								specialEffects.Add("Future Sight frame");
+										
+							if(singlePrint["border_color"].Value<string>() == "borderless")
+								specialEffects.Add("Borderless");
 
 							if (singlePrint["frame_effects"] != null)
 							{
@@ -274,30 +278,36 @@ namespace MTGProxyBuilder.Main.Windows
 									if(promoTypes.ContainsKey(s))
 										specialEffects.Add(promoTypes[s]);
 							}
+							
+							bool differentName = false;
+							if (singlePrint["printed_name"] != null)
+								differentName = singlePrint["name"].Value<string>() != singlePrint["printed_name"].Value<string>() &&
+								                singlePrint["lang"].Value<string>() == "en";
+							string setName = singlePrint["set_name"].Value<string>();
+							string setCode = differentName ? singlePrint["printed_name"].Value<string>() : singlePrint["set"].Value<string>().ToUpper();
+							string imageUri = singlePrint["image_uris"] != null ? singlePrint["image_uris"]["png"].Value<string>() :
+								singlePrint["card_faces"][0]["image_uris"]["png"].Value<string>();
 
-							if (specialEffects.Count > 0)
+							if (specialEffects.Count > 0 && !differentName)
 								specialEffectsStr = specialEffects.Aggregate("", (s, listStr) => s + listStr + ", ")
 								                                  .TrimEnd(',', ' ').Insert(0, " [") + "]";
 
-							string setName = singlePrint["set_name"].Value<string>();
-							string setCode = singlePrint["set"].Value<string>().ToUpper();
-							string imageUri = singlePrint["image_uris"] != null ? singlePrint["image_uris"]["png"].Value<string>() :
-								singlePrint["card_faces"][0]["image_uris"]["png"].Value<string>();
-							editionNames.Add(new KeyValuePair<string, string>(setName + " (" + setCode + ")" + specialEffectsStr, imageUri));
+							editionNames.Add(setName + " (" + setCode + ")" + specialEffectsStr);
+							artworkURLs.Add(imageUri);
 
 							if (singlePrint["layout"].Value<string>() == "transform")
 								currentCard.BackFaceURL = singlePrint["card_faces"][1]["image_uris"]["png"].Value<string>();
 						}
 						editionNames.Reverse();
-						currentCard.SelectedEdition = editionNames[0].Key;
-						currentCard.EditionNamesArtworkURLs = editionNames;
+						artworkURLs.Reverse();
+						currentCard.SelectedEdition = editionNames[0];
+						currentCard.EditionNames = editionNames;
+						currentCard.ArtworkURLs = artworkURLs;
 						currentCard.DisplayName = cardNames.Count > 1 ? cardNames[0] + " // " + cardNames[1] : cardNames[0];
-						break;
 					}
 				}
 			}
-
-			allCards.RemoveAll(e => e.EditionNamesArtworkURLs == null);
+			
 			CardsWithAmounts = allCards;
 
 			Dispatcher.Invoke(() =>

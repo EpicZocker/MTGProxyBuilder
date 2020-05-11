@@ -10,7 +10,9 @@ namespace MTGProxyBuilder.Main.Classes
 		
 		public int Amount { get; set; }
 
-		public List<KeyValuePair<string, string>> EditionNamesArtworkURLs { get; set; }
+		public List<string> EditionNames { get; set; }
+		public List<string> ArtworkURLs;
+		
 		public string BackFaceURL;
 		
 		public string SelectedEdition { get; set; }

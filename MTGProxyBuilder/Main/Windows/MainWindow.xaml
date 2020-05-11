@@ -69,11 +69,10 @@
                         <DataGridTemplateColumn Header="Edition" Width="5*">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <ComboBox ItemsSource="{Binding Path=EditionNamesArtworkURLs}"
-                                              DisplayMemberPath="Key" FontSize="18"
+                                    <ComboBox ItemsSource="{Binding Path=EditionNames}"
                                               SelectedItem="{Binding Path=SelectedEdition,
                                                   UpdateSourceTrigger=PropertyChanged}"
-                                              SelectedIndex="0">
+                                              SelectedIndex="0" FontSize="18">
                                     </ComboBox>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
