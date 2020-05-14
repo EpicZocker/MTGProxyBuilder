@@ -48,7 +48,7 @@
                         </Style>
                     </DataGrid.ColumnHeaderStyle>
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="#" Width="0.5*" Binding="{Binding Path=Amount}">
+                        <DataGridTextColumn Header="#" Width="1*" Binding="{Binding Path=Amount}">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="VerticalAlignment" Value="Center"/>
@@ -57,7 +57,7 @@
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
-                        <DataGridTextColumn Header="Cardname" Width="5*" Binding="{Binding Path=DisplayName}">
+                        <DataGridTextColumn Header="Cardname" Width="10*" Binding="{Binding Path=DisplayName}">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="VerticalAlignment" Value="Center"/>
@@ -66,7 +66,7 @@
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
-                        <DataGridTemplateColumn Header="Edition" Width="5*">
+                        <DataGridTemplateColumn Header="Edition" Width="10*">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <ComboBox ItemsSource="{Binding Path=EditionNames}"

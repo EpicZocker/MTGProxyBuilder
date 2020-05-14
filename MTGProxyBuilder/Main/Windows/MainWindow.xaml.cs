@@ -6,6 +6,8 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -171,6 +173,7 @@ namespace MTGProxyBuilder.Main.Windows
 			{
 				Info.Hide();
 				IsEnabled = true;
+				Focus();
 			});
 		}
 
@@ -211,8 +214,7 @@ namespace MTGProxyBuilder.Main.Windows
 				Info.Show();
 			});
 			
-			HttpResponseMessage resp = await PullAllDecklistData();
-			JObject pulledCards = JObject.Parse(resp.Content.ReadAsStringAsync().Result);
+			JToken pulledCards = await PullAllDecklistData();
 			List<CardAmount> allCards = InterpretCardlist();
 			int progress = 0;
 
@@ -223,7 +225,13 @@ namespace MTGProxyBuilder.Main.Windows
 				foreach (JToken jt in pulledCards["data"].Children())
 				{
 					List<string> cardNames = jt["name"].Value<string>().Split(new[] { " // " }, StringSplitOptions.RemoveEmptyEntries).ToList();
-					if (cardNames.Contains(currentCard.CardName, StringComparer.OrdinalIgnoreCase))
+					string displayName = cardNames.Count > 1 ? cardNames[0] + " // " + cardNames[1] : cardNames[0];
+					string regexPattern = @"[^a-zA-Z0-9]";
+					for (int i = 0; i < cardNames.Count; i++)
+						cardNames[i] = Regex.Replace(cardNames[i], regexPattern, "");
+					string cardname = Regex.Replace(currentCard.CardName, regexPattern, "");
+					if (cardNames.Contains(cardname, StringComparer.OrdinalIgnoreCase) ||
+					    jt["name"].Value<string>().Equals(currentCard.CardName, StringComparison.OrdinalIgnoreCase))
 					{
 						HttpResponseMessage allPrintsResp = await APIInterface.Get("/cards/search",
 							jt["prints_search_uri"].Value<string>().Split('?')[1]);
@@ -244,7 +252,7 @@ namespace MTGProxyBuilder.Main.Windows
 							if (singlePrint["frame"].Value<string>() == "future")
 								specialEffects.Add("Future Sight frame");
 										
-							if(singlePrint["border_color"].Value<string>() == "borderless")
+							if (singlePrint["border_color"].Value<string>() == "borderless")
 								specialEffects.Add("Borderless");
 
 							if (singlePrint["frame_effects"] != null)
@@ -303,11 +311,13 @@ namespace MTGProxyBuilder.Main.Windows
 						currentCard.SelectedEdition = editionNames[0];
 						currentCard.EditionNames = editionNames;
 						currentCard.ArtworkURLs = artworkURLs;
-						currentCard.DisplayName = cardNames.Count > 1 ? cardNames[0] + " // " + cardNames[1] : cardNames[0];
+						currentCard.DisplayName = displayName;
+						break; //stops the loop when the first matching card is found
 					}
 				}
 			}
-			
+
+			allCards.RemoveAll(e => e.ArtworkURLs == null || e.EditionNames == null);
 			CardsWithAmounts = allCards;
 
 			Dispatcher.Invoke(() =>
@@ -318,23 +328,53 @@ namespace MTGProxyBuilder.Main.Windows
 				Info.Hide();
 				IsEnabled = true;
 			});
+
 			string notFoundList = pulledCards["not_found"].Children().Aggregate("", (s, token) => s + "\"" + token["name"] + "\", ").TrimEnd(',', ' ');
 			if (!string.IsNullOrEmpty(notFoundList))
 				MessageBox.Show("Cards not found: " + notFoundList, "Cards not found");
 		}
 
-		private async Task<HttpResponseMessage> PullAllDecklistData()
+		private async Task<JToken> PullAllDecklistData()
 		{
 			List<CardAmount> cards = InterpretCardlist().GroupBy(e => e.CardName).Select(e => e.First()).ToList();
+			JArray collection = new JArray();
 			if (cards.Count > 75)
 			{
-				//fixed crash when trying to parse more than 75 cards
+				JToken fullData = null;
+				List<HttpResponseMessage> responses = new List<HttpResponseMessage>();
+				int loopAmount = (int) Math.Ceiling(cards.Count / 75f);
+				for (int i = 0; i < loopAmount; i++)
+				{
+					int remainingAmount = cards.Count - (i * 75) > 75 ? 75 : cards.Count - (i * 75);
+					for (int j = 0; j < remainingAmount; j++)
+						collection.Add(JToken.Parse("{\"name\":\"" + cards[j + i * 75].CardName + "\"}"));
+					string bigBody = "{\"identifiers\":" + collection.ToString() + "}";
+					HttpResponseMessage resp = await APIInterface.PostWithBody("/cards/collection", bigBody);
+					if (fullData == null)
+						fullData = JToken.Parse(resp.Content.ReadAsStringAsync().Result);
+					else
+						responses.Add(resp);
+					collection.Clear();
+					Thread.Sleep(100);
+				}
+
+				foreach (HttpResponseMessage resp in responses)
+				{
+					JToken jt = JToken.Parse(resp.Content.ReadAsStringAsync().Result);
+					foreach(JToken data in jt["data"])
+						fullData["data"].Value<JArray>().Add(data);
+				}
+
+				return fullData;
 			}
-			JArray collection = new JArray();
-			foreach (CardAmount ca in cards)
-				collection.Add(JToken.Parse("{\"name\":\"" + ca.CardName + "\"}"));
-			string body = "{\"identifiers\":" + collection.ToString() + "}";
-			return await APIInterface.PostWithBody("/cards/collection", body);
+			else
+			{
+				foreach (CardAmount ca in cards)
+					collection.Add(JToken.Parse("{\"name\":\"" + ca.CardName + "\"}"));
+				string body = "{\"identifiers\":" + collection.ToString() + "}";
+				HttpResponseMessage singleResp = await APIInterface.PostWithBody("/cards/collection", body); //, "include_multilingual=true"
+				return JToken.Parse(singleResp.Content.ReadAsStringAsync().Result);
+			}
 		}
 
 		private void DisableTab(object sender, KeyEventArgs e)
