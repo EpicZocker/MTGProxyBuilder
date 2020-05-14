@@ -9,7 +9,8 @@
         MinHeight="500" MinWidth="1000"
         WindowStartupLocation="CenterScreen"
         Keyboard.PreviewKeyDown="DisableTab"
-        Closing="ApplicationClosing">
+        Closing="ApplicationClosing"
+        Initialized="VersionCheck">
     <Grid Margin="10,5,10,5">
         <Grid.RowDefinitions>
             <RowDefinition Height="10*"/>
@@ -27,7 +28,7 @@
                 </Grid.RowDefinitions>
                 <TextBlock FontSize="18" TextAlignment="Justify" Grid.Row="0" HorizontalAlignment="Center">Decklist</TextBlock>
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                    <TextBox Name="Decklist" FontSize="18" AcceptsReturn="True"></TextBox>
+                    <TextBox Name="Decklist" FontSize="18" AcceptsReturn="True" TextChanged="DecklistTextChanged"></TextBox>
                 </ScrollViewer>
             </Grid>
             <GridSplitter Grid.Column="0" Width="3" Background="Transparent"/>
@@ -88,9 +89,9 @@
                 <ColumnDefinition/>
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
-            <Button Name="Settings" VerticalAlignment="Center" FontSize="18" Click="OpenSettingsWindow" Grid.Column="0" Margin="0,0,5,0">Settings</Button>
-            <Button Name="AddCustomImages" VerticalAlignment="Center" FontSize="18" Click="AddCustomImagesButtonClicked" Grid.Column="1" Margin="5,0,5,0">Add custom cards</Button>
-            <Button Name="CustomizeCards" VerticalAlignment="Center" FontSize="18" Click="CustomizeCardsClicked" Grid.Column="2" Margin="5,0,5,0">Customize cards</Button>
+            <Button Name="SettingsButton" VerticalAlignment="Center" FontSize="18" Click="OpenSettingsWindow" Grid.Column="0" Margin="0,0,5,0">Settings</Button>
+            <Button Name="AddCustomCardsButton" VerticalAlignment="Center" FontSize="18" Click="AddCustomImagesButtonClicked" Grid.Column="1" Margin="5,0,5,0">Add custom cards</Button>
+            <Button Name="ParseDecklistButton" VerticalAlignment="Center" FontSize="18" Click="CustomizeCardsClicked" Grid.Column="2" Margin="5,0,5,0" IsEnabled="False">Customize cards</Button>
             <Button Name="CreatePDFButton" VerticalAlignment="Center" FontSize="18" Click="CreatePDFButtonClicked" Grid.Column="3" Margin="5,0,0,0" IsEnabled="False">Create PDF</Button>
         </Grid>
     </Grid>

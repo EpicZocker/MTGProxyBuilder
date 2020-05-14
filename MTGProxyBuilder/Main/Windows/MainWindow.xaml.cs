@@ -3,13 +3,18 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 using Microsoft.WindowsAPICodePack.Dialogs;
@@ -27,7 +32,7 @@ namespace MTGProxyBuilder.Main.Windows
 		public List<CustomCardAmount> CustomCards;
 
 		private List<CardAmount> CardsWithAmounts;
-		private Settings UserSettings = Properties.Settings.Default;
+		private Settings UserSettings = Settings.Default;
 		private InfoWindow Info = new InfoWindow();
 		private string PDFOutputPath;
 
@@ -175,22 +180,6 @@ namespace MTGProxyBuilder.Main.Windows
 				IsEnabled = true;
 				Focus();
 			});
-		}
-
-		private void OpenSettingsWindow(object sender, RoutedEventArgs e)
-		{
-			SettingsWindow sw = new SettingsWindow();
-			sw.Owner = this;
-			sw.Show();
-			IsEnabled = false;
-		}
-
-		private void AddCustomImagesButtonClicked(object sender, RoutedEventArgs e)
-		{
-			CustomCardsWindow ccw = new CustomCardsWindow();
-			ccw.Owner = this;
-			ccw.Show();
-			IsEnabled = false;
 		}
 
 		private async void CustomizeCardsClicked(object sender, RoutedEventArgs eventArgs)
@@ -349,7 +338,8 @@ namespace MTGProxyBuilder.Main.Windows
 					for (int j = 0; j < remainingAmount; j++)
 						collection.Add(JToken.Parse("{\"name\":\"" + cards[j + i * 75].CardName + "\"}"));
 					string bigBody = "{\"identifiers\":" + collection.ToString() + "}";
-					HttpResponseMessage resp = await APIInterface.PostWithBody("/cards/collection", bigBody);
+					HttpResponseMessage resp = await APIInterface.Post("/cards/collection",
+						new StringContent(bigBody, Encoding.UTF8, "application/json"));
 					if (fullData == null)
 						fullData = JToken.Parse(resp.Content.ReadAsStringAsync().Result);
 					else
@@ -372,9 +362,64 @@ namespace MTGProxyBuilder.Main.Windows
 				foreach (CardAmount ca in cards)
 					collection.Add(JToken.Parse("{\"name\":\"" + ca.CardName + "\"}"));
 				string body = "{\"identifiers\":" + collection.ToString() + "}";
-				HttpResponseMessage singleResp = await APIInterface.PostWithBody("/cards/collection", body); //, "include_multilingual=true"
+				HttpResponseMessage singleResp = await APIInterface.Post("/cards/collection",
+					new StringContent(body, Encoding.UTF8, "application/json")); //, "include_multilingual=true"
 				return JToken.Parse(singleResp.Content.ReadAsStringAsync().Result);
 			}
+		}
+
+		private async void VersionCheck(object sender, EventArgs e)
+		{
+			string currentVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+			Title = $"MTGProxyBuilder (v{currentVersion})";
+			JToken jt;
+
+			using (HttpClient client = new HttpClient())
+			{
+				client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(new ProductHeaderValue("MTGProxyBuilder")));
+				HttpResponseMessage resp = await client.GetAsync("https://api.github.com/repos/EpicZocker/MTGProxyBuilder/releases/latest");
+				jt = JToken.Parse(resp.Content.ReadAsStringAsync().Result);
+			}
+
+			string tag = jt["tag_name"].Value<string>();
+			if (currentVersion != tag.Insert(tag.Length, ".0").TrimStart('v'))
+			{
+				if (MessageBox.Show($"New version available ({tag}). Do you want to download it and replace the current version?",
+				                    "New version", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+				{
+					JToken assets = jt["assets"][0];
+					string parentDir = Directory.GetParent(CurrentDirectory).FullName;
+					string downloadedFilePath = parentDir + Path.DirectorySeparatorChar + assets["name"].Value<string>();
+					using (WebClient webClient = new WebClient())
+						webClient.DownloadFile(assets["browser_download_url"].Value<string>(), downloadedFilePath);
+					Directory.CreateDirectory(downloadedFilePath.Replace(".zip", ""));
+					ZipFile.ExtractToDirectory(downloadedFilePath, downloadedFilePath.Replace(".zip", ""));
+					File.Delete(downloadedFilePath);
+					Process.Start(downloadedFilePath.Replace(".zip", "") + Path.DirectorySeparatorChar + "MTGProxyBuilder.exe");
+					Exit(0);
+				}
+			}
+		}
+
+		private void OpenSettingsWindow(object sender, RoutedEventArgs e)
+		{
+			SettingsWindow sw = new SettingsWindow();
+			sw.Owner = this;
+			sw.Show();
+			IsEnabled = false;
+		}
+
+		private void AddCustomImagesButtonClicked(object sender, RoutedEventArgs e)
+		{
+			CustomCardsWindow ccw = new CustomCardsWindow();
+			ccw.Owner = this;
+			ccw.Show();
+			IsEnabled = false;
+		}
+
+		private void DecklistTextChanged(object sender, TextChangedEventArgs e)
+		{
+			ParseDecklistButton.IsEnabled = !string.IsNullOrEmpty((sender as TextBox).Text);
 		}
 
 		private void DisableTab(object sender, KeyEventArgs e)

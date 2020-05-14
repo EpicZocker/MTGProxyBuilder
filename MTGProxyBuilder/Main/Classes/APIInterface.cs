@@ -8,22 +8,19 @@ namespace MTGProxyBuilder.Main.Classes
 {
 	public class APIInterface
 	{
-		private const string Url = "https://api.scryfall.com";
+		private const string DefaultUrl = "https://api.scryfall.com";
 
 		private static HttpClient Client = new HttpClient();
-		
+
 		public static async Task<HttpResponseMessage> Get(string apiUrl, params string[] parameters) =>
-				await Client.GetAsync(CreateUri(apiUrl, parameters));
+				await Client.GetAsync(CreateUri(apiUrl, DefaultUrl, parameters));
 		
-		public static async Task<HttpResponseMessage> Post(string apiUrl, params string[] parameters) =>
-				await Client.PostAsync(CreateUri(apiUrl, parameters), null);
+		public static async Task<HttpResponseMessage> Post(string apiUrl, HttpContent body = null, params string[] parameters) =>
+				await Client.PostAsync(CreateUri(apiUrl, DefaultUrl, parameters), body);
 
-		public static async Task<HttpResponseMessage> PostWithBody(string apiUrl, string body, params string[] parameters) =>
-				await Client.PostAsync(CreateUri(apiUrl, parameters), new StringContent(body, Encoding.UTF8, "application/json"));
-
-		private static Uri CreateUri(string apiUrl, params string[] par)
+		private static Uri CreateUri(string apiUrl, string url = DefaultUrl, params string[] par)
 		{
-			string full = Url + apiUrl + (par.Length != 0 ? "?" : "");
+			string full = url + apiUrl + (par.Length != 0 ? "?" : "");
 			string req = string.Join("&", par);
 			return new Uri(full + req);
 		}
