@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -39,6 +38,7 @@ namespace MTGProxyBuilder.Main.Windows
 		public MainWindow()
 		{
 			InitializeComponent();
+			DeleteOldFile();
 		}
 
 		private List<CardAmount> InterpretCardlist()
@@ -388,14 +388,12 @@ namespace MTGProxyBuilder.Main.Windows
 				                    "New version", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
 				{
 					JToken assets = jt["assets"][0];
-					string parentDir = Directory.GetParent(CurrentDirectory).FullName;
-					string downloadedFilePath = parentDir + Path.DirectorySeparatorChar + assets["name"].Value<string>();
+					string currentDir = Directory.GetCurrentDirectory() + Path.DirectorySeparatorChar;
+					string downloadedFilePath = currentDir + assets["name"].Value<string>();
+					File.Move(Assembly.GetExecutingAssembly().Location, currentDir + "Old" + Properties.Resources.DefaultFileName);
 					using (WebClient webClient = new WebClient())
 						webClient.DownloadFile(assets["browser_download_url"].Value<string>(), downloadedFilePath);
-					Directory.CreateDirectory(downloadedFilePath.Replace(".zip", ""));
-					ZipFile.ExtractToDirectory(downloadedFilePath, downloadedFilePath.Replace(".zip", ""));
-					File.Delete(downloadedFilePath);
-					Process.Start(downloadedFilePath.Replace(".zip", "") + Path.DirectorySeparatorChar + "MTGProxyBuilder.exe");
+					Process.Start(downloadedFilePath);
 					Exit(0);
 				}
 			}
@@ -415,6 +413,13 @@ namespace MTGProxyBuilder.Main.Windows
 			ccw.Owner = this;
 			ccw.Show();
 			IsEnabled = false;
+		}
+
+		private void DeleteOldFile()
+		{
+			string oldPath = Directory.GetCurrentDirectory() + Path.DirectorySeparatorChar + "OldMTGProxyBuilder.exe";
+			if (File.Exists(oldPath))
+				File.Delete(oldPath);
 		}
 
 		private void DecklistTextChanged(object sender, TextChangedEventArgs e)
