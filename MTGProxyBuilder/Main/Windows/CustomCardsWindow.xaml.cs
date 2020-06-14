@@ -15,7 +15,7 @@ namespace MTGProxyBuilder.Main.Windows
 {
 	public partial class CustomCardsWindow : Window
 	{
-		private List<CustomCardAmount> CustomCards;
+		private List<CustomCard> CustomCards;
 		private byte[] CurrentImage;
 		
         public CustomCardsWindow()
@@ -31,7 +31,6 @@ namespace MTGProxyBuilder.Main.Windows
 				mw.CustomCards = CustomCards;
 				mw.CreatePDFButton.IsEnabled = true;
 			}
-			mw.IsEnabled = true;
 	        mw.Focus();
         }
 
@@ -40,7 +39,7 @@ namespace MTGProxyBuilder.Main.Windows
 	        CommonOpenFileDialog dialog = new CommonOpenFileDialog();
 	        dialog.DefaultDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
 	        dialog.EnsureFileExists = true;
-	        dialog.Filters.Add(new CommonFileDialogFilter("Images", "png, jpg, jpeg, gif"));
+	        dialog.Filters.Add(new CommonFileDialogFilter("Images", "png, jpg, jpeg"));
 	        if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
 	        {
 		        ImagePathBox.Text = dialog.FileName;
@@ -54,11 +53,11 @@ namespace MTGProxyBuilder.Main.Windows
 	        {
 		        if (CustomCards == null)
 		        {
-			        CustomCards = new List<CustomCardAmount>();
+			        CustomCards = new List<CustomCard>();
 			        CardGrid.ItemsSource = CustomCards;
 		        }
 
-		        CustomCards.Add(new CustomCardAmount()
+		        CustomCards.Add(new CustomCard()
 		        {
 				    Amount = int.Parse(AmountText.Text),
 				    CardName = CardnameBox.Text,

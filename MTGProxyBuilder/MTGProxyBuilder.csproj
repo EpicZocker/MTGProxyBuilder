@@ -78,11 +78,16 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="Main\Classes\CustomCardAmount.cs" />
+    <Compile Include="Main\Classes\CustomCard.cs" />
+    <Compile Include="Main\Classes\Edition.cs" />
     <Compile Include="Main\Windows\CustomCardsWindow.xaml.cs">
       <DependentUpon>CustomCardsWindow.xaml</DependentUpon>
     </Compile>
     <Page Include="Main\Windows\CustomCardsWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Main\Windows\EditAmountWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -95,8 +100,11 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Main\Classes\CardAmount.cs" />
+    <Compile Include="Main\Classes\Card.cs" />
     <Compile Include="Main\Classes\ExtensionMethods.cs" />
+    <Compile Include="Main\Windows\EditAmountWindow.xaml.cs">
+      <DependentUpon>EditAmountWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Main\Windows\MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

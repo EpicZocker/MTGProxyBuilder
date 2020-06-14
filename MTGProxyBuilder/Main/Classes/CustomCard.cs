@@ -1,6 +1,6 @@
 ﻿namespace MTGProxyBuilder.Main.Classes
 {
-	public class CustomCardAmount
+	public class CustomCard
     {
 		public string CardName { get; set; }
 

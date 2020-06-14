@@ -2,7 +2,7 @@
 
 namespace MTGProxyBuilder.Main.Classes
 {
-	public class CardAmount
+	public class Card
 	{
 		public string CardName { get; set; }
 
@@ -10,11 +10,8 @@ namespace MTGProxyBuilder.Main.Classes
 		
 		public int Amount { get; set; }
 
-		public List<string> EditionNames { get; set; }
-		public List<string> ArtworkURLs;
-		
-		public string BackFaceURL;
-		
-		public string SelectedEdition { get; set; }
+		public List<Edition> Editions { get; set; }
+
+		public int SelectedEditionIndex { get; set; }
 	}
 }

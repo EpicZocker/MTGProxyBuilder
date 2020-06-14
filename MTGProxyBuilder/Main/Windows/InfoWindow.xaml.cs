@@ -30,7 +30,7 @@ namespace MTGProxyBuilder.Main.Windows
 
 		private void InfoWindowClosing(object sender, CancelEventArgs e)
 		{
-			(sender as Window).Hide();
+			Hide();
 			e.Cancel = true;
 		}
 	}

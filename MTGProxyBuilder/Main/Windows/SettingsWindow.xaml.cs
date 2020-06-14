@@ -21,7 +21,6 @@ namespace MTGProxyBuilder.Main.Windows
 
 		private void SettingsWindowClosing(object sender, CancelEventArgs e)
 		{
-			Owner.IsEnabled = true;
 			Settings.Default.Save();
 		}
 

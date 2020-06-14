@@ -13,7 +13,6 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 using Microsoft.WindowsAPICodePack.Dialogs;
@@ -23,14 +22,16 @@ using Newtonsoft.Json.Linq;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf;
 using static System.Environment;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using MessageBox = System.Windows.MessageBox;
 
 namespace MTGProxyBuilder.Main.Windows
 {
 	public partial class MainWindow : Window
 	{
-		public List<CustomCardAmount> CustomCards;
+		public List<CustomCard> CustomCards;
 
-		private List<CardAmount> CardsWithAmounts;
+		private List<Card> Cards;
 		private Settings UserSettings = Settings.Default;
 		private InfoWindow Info = new InfoWindow();
 		private string PDFOutputPath;
@@ -41,26 +42,19 @@ namespace MTGProxyBuilder.Main.Windows
 			DeleteOldFile();
 		}
 
-		private List<CardAmount> InterpretCardlist()
+		private List<Card> InterpretCardlist()
 		{
 			string[] cards = null;
 			Dispatcher.Invoke(() => { cards = Decklist.Text.Split(new[] { NewLine }, StringSplitOptions.RemoveEmptyEntries); });
 			cards.ToList().ForEach(e => e.Trim());
 
-			List<CardAmount> cardAmounts = new List<CardAmount>();
+			List<Card> cardAmounts = new List<Card>();
 			foreach (string s in cards)
 			{
 				string strAmount = s.Split(' ')[0];
-				int amount = 1;
-				try
-				{
-					amount = int.Parse(strAmount);
-				}
-				catch (Exception)
-				{
-					strAmount = "";
-				}
-				cardAmounts.Add(new CardAmount(){ Amount = amount, CardName = s.TrimStart(strAmount.ToCharArray()).Trim() });
+				bool num = int.TryParse(strAmount, out int amount);
+				strAmount = num ? strAmount : "";
+				cardAmounts.Add(new Card(){ Amount = amount == 0 ? 1 : amount, CardName = s.TrimStart(strAmount.ToCharArray()).Trim() });
 			}
 			return cardAmounts;
 		}
@@ -104,14 +98,16 @@ namespace MTGProxyBuilder.Main.Windows
 				IsEnabled = false;
 			});
 
-			if (CardsWithAmounts != null)
+			if (Cards != null)
 			{
-				foreach (CardAmount card in CardsWithAmounts)
+				foreach (Card card in Cards)
 				{
-					Dispatcher.Invoke(() => Info.TextBlock.Text = "Fetching images, Progress: " + images.Count + "/" + CardsWithAmounts.Count);
-					
-					byte[] img = webClient.DownloadData(card.ArtworkURLs[card.EditionNames.IndexOf(card.SelectedEdition)]);
-					byte[] backFace = !string.IsNullOrEmpty(card.BackFaceURL) ? webClient.DownloadData(card.BackFaceURL) : null;
+					Dispatcher.Invoke(() => Info.TextBlock.Text = "Fetching images, Progress: " + images.Count + "/" + Cards.Count);
+
+					Edition selectedEdition = card.Editions[card.SelectedEditionIndex];
+					byte[] img = webClient.DownloadData(selectedEdition.ArtworkURL);
+					byte[] backFace = !string.IsNullOrEmpty(selectedEdition.BackFaceURL) ?
+							           webClient.DownloadData(selectedEdition.BackFaceURL) : null;
 
 					for (int j = 0; j < card.Amount; j++)
 					{
@@ -123,7 +119,7 @@ namespace MTGProxyBuilder.Main.Windows
 			}
 
 			if (CustomCards != null)
-				foreach (CustomCardAmount cca in CustomCards)
+				foreach (CustomCard cca in CustomCards)
 					for(int i = 0; i < cca.Amount; i++)
 						images.Add(cca.CardImage);
 
@@ -199,18 +195,17 @@ namespace MTGProxyBuilder.Main.Windows
 			{
 				Info.Owner = this;
 				Info.TextBlock.Text = "Parsing decklist...";
-				IsEnabled = false;
 				Info.Show();
+				IsEnabled = false;
 			});
 			
 			JToken pulledCards = await PullAllDecklistData();
-			List<CardAmount> allCards = InterpretCardlist();
+			List<Card> allCards = InterpretCardlist();
 			int progress = 0;
 
-			foreach (CardAmount currentCard in allCards)
+			foreach (Card currentCard in allCards)
 			{
-				progress++;
-				Dispatcher.Invoke(() => Info.TextBlock.Text = "Parsing decklist, Progress: " + progress + "/" + allCards.Count);
+				Dispatcher.Invoke(() => Info.TextBlock.Text = "Parsing decklist, Progress: " + ++progress + "/" + allCards.Count);
 				foreach (JToken jt in pulledCards["data"].Children())
 				{
 					List<string> cardNames = jt["name"].Value<string>().Split(new[] { " // " }, StringSplitOptions.RemoveEmptyEntries).ToList();
@@ -225,11 +220,11 @@ namespace MTGProxyBuilder.Main.Windows
 						HttpResponseMessage allPrintsResp = await APIInterface.Get("/cards/search",
 							jt["prints_search_uri"].Value<string>().Split('?')[1]);
 						JToken allPrints = JToken.Parse(allPrintsResp.Content.ReadAsStringAsync().Result);
-						List<string> editionNames = new List<string>();
-						List<string> artworkURLs = new List<string>();
+						List<Edition> editions = new List<Edition>();
 						foreach (JToken singlePrint in allPrints["data"])
 						{
 							List<string> specialEffects = new List<string>();
+							Edition ed = new Edition();
 							string specialEffectsStr = "";
 
 							if (singlePrint["full_art"].Value<bool>())
@@ -288,32 +283,34 @@ namespace MTGProxyBuilder.Main.Windows
 							if (specialEffects.Count > 0 && !differentName)
 								specialEffectsStr = specialEffects.Aggregate("", (s, listStr) => s + listStr + ", ")
 								                                  .TrimEnd(',', ' ').Insert(0, " [") + "]";
-
-							editionNames.Add(setName + " (" + setCode + ")" + specialEffectsStr);
-							artworkURLs.Add(imageUri);
+							
+							ed.Name = setName;
+							ed.SetCode = setCode;
+							ed.SpecialEffects = specialEffectsStr;
+							ed.ArtworkURL = imageUri;
+							ed.CardNumber = singlePrint["collector_number"].Value<string>();
 
 							if (singlePrint["layout"].Value<string>() == "transform")
-								currentCard.BackFaceURL = singlePrint["card_faces"][1]["image_uris"]["png"].Value<string>();
+								ed.BackFaceURL = singlePrint["card_faces"][1]["image_uris"]["png"].Value<string>();
+
+							editions.Add(ed);
 						}
-						editionNames.Reverse();
-						artworkURLs.Reverse();
-						currentCard.SelectedEdition = editionNames[0];
-						currentCard.EditionNames = editionNames;
-						currentCard.ArtworkURLs = artworkURLs;
+						editions.Reverse();
+						currentCard.SelectedEditionIndex = 0;
+						currentCard.Editions = editions;
 						currentCard.DisplayName = displayName;
 						break; //stops the loop when the first matching card is found
 					}
 				}
 			}
 
-			allCards.RemoveAll(e => e.ArtworkURLs == null || e.EditionNames == null);
-			CardsWithAmounts = allCards;
+			allCards.RemoveAll(e => e.Editions == null || e.Editions.Count == 0);
+			Cards = allCards;
 
 			Dispatcher.Invoke(() =>
 			{
-				CardGrid.ItemsSource = CardsWithAmounts;
+				CardGrid.ItemsSource = Cards;
 				CardGrid.Items.Refresh();
-				CreatePDFButton.IsEnabled = CardGrid.Items.Count != 0;
 				Info.Hide();
 				IsEnabled = true;
 			});
@@ -325,7 +322,7 @@ namespace MTGProxyBuilder.Main.Windows
 
 		private async Task<JToken> PullAllDecklistData()
 		{
-			List<CardAmount> cards = InterpretCardlist().GroupBy(e => e.CardName).Select(e => e.First()).ToList();
+			List<Card> cards = InterpretCardlist().GroupBy(e => e.CardName).Select(e => e.First()).ToList();
 			JArray collection = new JArray();
 			if (cards.Count > 75)
 			{
@@ -359,7 +356,7 @@ namespace MTGProxyBuilder.Main.Windows
 			}
 			else
 			{
-				foreach (CardAmount ca in cards)
+				foreach (Card ca in cards)
 					collection.Add(JToken.Parse("{\"name\":\"" + ca.CardName + "\"}"));
 				string body = "{\"identifiers\":" + collection.ToString() + "}";
 				HttpResponseMessage singleResp = await APIInterface.Post("/cards/collection",
@@ -371,7 +368,7 @@ namespace MTGProxyBuilder.Main.Windows
 		private async void VersionCheck(object sender, EventArgs e)
 		{
 			string currentVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
-			Title = $"MTGProxyBuilder (v{currentVersion})";
+			Title = $"MTGProxyBuilder (v{currentVersion.TrimEnd('0', '.')})";
 			JToken jt;
 
 			using (HttpClient client = new HttpClient())
@@ -382,7 +379,7 @@ namespace MTGProxyBuilder.Main.Windows
 			}
 
 			string tag = jt["tag_name"].Value<string>();
-			if (currentVersion != tag.Insert(tag.Length, ".0").TrimStart('v'))
+			if (currentVersion != tag.Insert(tag.Length, ".0").TrimStart('v', '.'))
 			{
 				if (MessageBox.Show($"New version available ({tag}). Do you want to download it and replace the current version?",
 				                    "New version", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
@@ -403,16 +400,14 @@ namespace MTGProxyBuilder.Main.Windows
 		{
 			SettingsWindow sw = new SettingsWindow();
 			sw.Owner = this;
-			sw.Show();
-			IsEnabled = false;
+			sw.ShowDialog();
 		}
 
 		private void AddCustomImagesButtonClicked(object sender, RoutedEventArgs e)
 		{
 			CustomCardsWindow ccw = new CustomCardsWindow();
 			ccw.Owner = this;
-			ccw.Show();
-			IsEnabled = false;
+			ccw.ShowDialog();
 		}
 
 		private void DeleteOldFile()
@@ -420,11 +415,6 @@ namespace MTGProxyBuilder.Main.Windows
 			string oldPath = Directory.GetCurrentDirectory() + Path.DirectorySeparatorChar + "OldMTGProxyBuilder.exe";
 			if (File.Exists(oldPath))
 				File.Delete(oldPath);
-		}
-
-		private void DecklistTextChanged(object sender, TextChangedEventArgs e)
-		{
-			ParseDecklistButton.IsEnabled = !string.IsNullOrEmpty((sender as TextBox).Text);
 		}
 
 		private void DisableTab(object sender, KeyEventArgs e)
@@ -436,6 +426,28 @@ namespace MTGProxyBuilder.Main.Windows
 		private void ApplicationClosing(object sender, CancelEventArgs e)
 		{
 			Exit(0);
+		}
+
+		private void CardGridContextMenuOpenInScryfallClicked(object sender, RoutedEventArgs e)
+		{
+			int i = CardGrid.SelectedIndex;
+			Edition selectedEdition = Cards[i].Editions[Cards[i].SelectedEditionIndex];
+			Process.Start("https://www.scryfall.com/card/" + $"{selectedEdition.SetCode.ToLower()}/" +
+			             $"{selectedEdition.CardNumber}/{Cards[i].CardName}");
+		}
+
+		private void CardGridContextMenuEditAmountClicked(object sender, RoutedEventArgs e)
+		{
+			EditAmountWindow eaw = new EditAmountWindow();
+			eaw.ShowDialog();
+			Cards[CardGrid.SelectedIndex].Amount = eaw.NewAmount;
+			CardGrid.Items.Refresh();
+		}
+
+		private void CardGridContextMenuDeleteClicked(object sender, RoutedEventArgs e)
+		{
+			Cards.RemoveAt(CardGrid.SelectedIndex);
+			CardGrid.Items.Refresh();
 		}
 	}
 }
