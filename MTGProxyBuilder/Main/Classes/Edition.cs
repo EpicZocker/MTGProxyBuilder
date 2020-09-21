@@ -10,6 +10,8 @@
 		public string BackFaceURL;
 		public string CardNumber;
 
+		public string BorderColor;
+
 		public string DisplayEdition { get { return Name + $" ({SetCode})" + SpecialEffects; } }
 	}
 }

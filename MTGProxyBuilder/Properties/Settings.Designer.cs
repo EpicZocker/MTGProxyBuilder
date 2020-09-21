@@ -106,5 +106,17 @@ namespace MTGProxyBuilder.Properties {
                 this["OffsetTop"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool FillCorners {
+            get {
+                return ((bool)(this["FillCorners"]));
+            }
+            set {
+                this["FillCorners"] = value;
+            }
+        }
     }
 }

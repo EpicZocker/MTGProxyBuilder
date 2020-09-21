@@ -87,7 +87,7 @@ namespace MTGProxyBuilder.Main.Windows
 
 		private void PrintPDF()
 		{
-			List<byte[]> images = new List<byte[]>();
+			Dictionary<byte[], string> imagesWithBorder = new Dictionary<byte[], string>();
 			WebClient webClient = new WebClient();
 
 			Dispatcher.Invoke(() =>
@@ -102,7 +102,7 @@ namespace MTGProxyBuilder.Main.Windows
 			{
 				foreach (Card card in Cards)
 				{
-					Dispatcher.Invoke(() => Info.TextBlock.Text = "Fetching images, Progress: " + images.Count + "/" + Cards.Count);
+					Dispatcher.Invoke(() => Info.TextBlock.Text = "Fetching images, Progress: " + imagesWithBorder.Count + "/" + Cards.Count);
 
 					Edition selectedEdition = card.Editions[card.SelectedEditionIndex];
 					byte[] img = webClient.DownloadData(selectedEdition.ArtworkURL);
@@ -111,9 +111,9 @@ namespace MTGProxyBuilder.Main.Windows
 
 					for (int j = 0; j < card.Amount; j++)
 					{
-						images.Add(img);
+						imagesWithBorder.Add(img, selectedEdition.BorderColor);
 						if (backFace != null)
-							images.Add(backFace);
+							imagesWithBorder.Add(backFace, selectedEdition.BorderColor);
 					}
 				}
 			}
@@ -121,7 +121,7 @@ namespace MTGProxyBuilder.Main.Windows
 			if (CustomCards != null)
 				foreach (CustomCard cca in CustomCards)
 					for(int i = 0; i < cca.Amount; i++)
-						images.Add(cca.CardImage);
+						imagesWithBorder.Add(cca.CardImage, "Black");
 
 			Dispatcher.Invoke(() => Info.TextBlock.Text = "Building PDF..." );
 
@@ -134,20 +134,37 @@ namespace MTGProxyBuilder.Main.Windows
 			int widthGap = UserSettings.GapX;
 			int heightGap = UserSettings.GapY;
 
-			for (int i = 0; i < Math.Ceiling(images.Count / 9f); i++)
+			for (int i = 0; i < Math.Ceiling(imagesWithBorder.Count / 9f); i++)
 			{
 				float x = UserSettings.OffsetLeft;
 				float y = UserSettings.OffsetTop;
 
-				int remainingImages = images.Count - i * 9;
+				int remainingImages = imagesWithBorder.Count - i * 9;
 				if (remainingImages > 9)
 					remainingImages = 9;
 
 				for (int j = 1; j < remainingImages + 1; j++)
 				{
-					Dispatcher.Invoke(() => Info.TextBlock.Text = "Drawing images, Progress: " + (j + i * 9) + "/" + images.Count);
+					Dispatcher.Invoke(() => Info.TextBlock.Text = "Drawing images, Progress: " + (j + i * 9) + "/" + imagesWithBorder.Count);
 
-					MemoryStream mem = new MemoryStream(images.Skip(i * 9).ToList()[j - 1]);
+					MemoryStream mem = new MemoryStream(imagesWithBorder.Keys.Skip(i * 9).ToList()[j - 1]);
+					if (UserSettings.FillCorners)
+					{
+						XBrush cornerBrush = null;
+						string currentColor = imagesWithBorder.Values.Skip(i * 9).ToList()[j - 1];
+						switch (currentColor.ToLower())
+						{
+							case "black": cornerBrush = new XSolidBrush(XColor.FromArgb(23, 20, 15));
+								break;
+							case "gold": cornerBrush = new XSolidBrush(XColor.FromArgb(166, 135, 76));
+								break;
+							case "silver": cornerBrush = new XSolidBrush(XColor.FromArgb(162, 173, 182)); //127,127,127
+								break;
+						}
+						if(cornerBrush != null)
+							draw.DrawRectangle(cornerBrush, x, y, cardWidth, cardHeight);
+					}
+
 					draw.DrawImage(XImage.FromStream(mem), x, y, cardWidth, cardHeight);
 					draw.Save();
 					if (j % 3 != 0)
@@ -270,7 +287,7 @@ namespace MTGProxyBuilder.Main.Windows
 									if(promoTypes.ContainsKey(s))
 										specialEffects.Add(promoTypes[s]);
 							}
-							
+
 							bool differentName = false;
 							if (singlePrint["printed_name"] != null)
 								differentName = singlePrint["name"].Value<string>() != singlePrint["printed_name"].Value<string>() &&
@@ -289,9 +306,11 @@ namespace MTGProxyBuilder.Main.Windows
 							ed.SpecialEffects = specialEffectsStr;
 							ed.ArtworkURL = imageUri;
 							ed.CardNumber = singlePrint["collector_number"].Value<string>();
+							ed.BorderColor = singlePrint["border_color"].Value<string>();
 
-							if (singlePrint["layout"].Value<string>() == "transform")
-								ed.BackFaceURL = singlePrint["card_faces"][1]["image_uris"]["png"].Value<string>();
+							if (singlePrint["card_faces"] != null)
+								if(singlePrint["card_faces"].Children().Count() > 0)
+									ed.BackFaceURL = singlePrint["card_faces"][1]["image_uris"]["png"].Value<string>();
 
 							editions.Add(ed);
 						}
