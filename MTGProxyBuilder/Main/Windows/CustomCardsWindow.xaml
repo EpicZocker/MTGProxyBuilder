@@ -5,96 +5,60 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner"
-        Title="Add custom card" 
-        Height="700" Width="800"
+        Title="Add custom card(s)" 
+        Height="500" Width="800"
         Closing="CustomizeCardsClosing"
         FontSize="18">
     <Grid>
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="5*"/>
-                <ColumnDefinition Width="3*"/>
-            </Grid.ColumnDefinitions>
-            <Grid Grid.Column="0">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="15*"/>
-                    <RowDefinition Height="40*"/>
-                    <RowDefinition Height="5*"/>
-                </Grid.RowDefinitions>
-                <Grid Grid.Row="0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="1*"/>
-                        <RowDefinition Height="1*"/>
-                        <RowDefinition Height="1*"/>
-                        <RowDefinition Height="1*"/>
-                        <RowDefinition Height="1*"/>
-                    </Grid.RowDefinitions>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1*"/>
-                            <ColumnDefinition Width="1*"/>
-                            <ColumnDefinition Width="1*"/>
-                            <ColumnDefinition Width="1*"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="Amount: " VerticalAlignment="Center" 
-                                   TextAlignment="Left" Grid.Column="1" Margin="5,0,0,0"/>
-                        <TextBox Grid.Column="2" Margin="3" Name="AmountText"
-                                 TextAlignment="Center" Text="1" TextInput="NumberInputCheck"
-                                 CommandManager.PreviewExecuted="PreventPaste" ContextMenu="{x:Null}"/>
-                    </Grid>
-                    <TextBlock Grid.Row="1" VerticalAlignment="Center" Margin="5,5,5,0">Cardname:</TextBlock>
-                    <TextBox Grid.Row="2" VerticalAlignment="Center" Margin="5,0,5,0" Name="CardnameBox"/>
-                    <Grid Grid.Row="3">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1*"/>
-                            <ColumnDefinition Width="1*"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="5">Image path:</TextBlock>
-                        <Button Grid.Column="1" Margin="3" FontSize="16" Click="SelectFileClicked">Select image...</Button>
-                    </Grid>
-                    <TextBox Grid.Row="4" VerticalAlignment="Center" Margin="5,0,5,0" Name="ImagePathBox" LostFocus="CheckFile"/>
-                </Grid>
-                <TextBlock Grid.Row="1" TextAlignment="Center" 
-                           VerticalAlignment="Center">Card preview</TextBlock>
-                <Image Grid.Row="1" Margin="5" Name="CardImage"/>
-                <Grid Grid.Row="2">
-                    <Button Margin="150,5" Click="AddCardToListButton">Add card to list</Button>
-                </Grid>
-            </Grid>
-            <GridSplitter Grid.Column="0" Width="3" Background="Transparent"/>
-            <Grid Grid.Column="1">
-                <DataGrid AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                          CanUserDeleteRows="False" CanUserReorderColumns="False" ColumnWidth="Auto"
-                          CanUserResizeRows="False" Name="CardGrid" HeadersVisibility="Column"
-                          HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                    <DataGrid.ColumnHeaderStyle>
-                        <Style TargetType="DataGridColumnHeader">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="7*"/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <DataGrid AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" Margin="5" Grid.ColumnSpan="2"
+                        CanUserDeleteRows="False" CanUserReorderColumns="False" ColumnWidth="Auto"
+                        CanUserResizeRows="False" Name="CardGrid" HeadersVisibility="Column" MouseLeftButtonUp="CardGridLeftClick"
+                        HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <DataGrid.ColumnHeaderStyle>
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="FontSize" Value="18"/>
+                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                </Style>
+            </DataGrid.ColumnHeaderStyle>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="#" Width="0.5*" Binding="{Binding Path=Amount}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                            <Setter Property="HorizontalAlignment" Value="Center"/>
                             <Setter Property="FontSize" Value="18"/>
-                            <Setter Property="VerticalContentAlignment" Value="Center"/>
                         </Style>
-                    </DataGrid.ColumnHeaderStyle>
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="#" Width="0.5*" Binding="{Binding Path=Amount}">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                    <Setter Property="HorizontalAlignment" Value="Center"/>
-                                    <Setter Property="FontSize" Value="18"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Header="Cardname" Width="5*" Binding="{Binding Path=CardName}">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                    <Setter Property="FontSize" Value="18"/>
-                                    <Setter Property="Margin" Value="5,0,0,0"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </Grid>
-        </Grid>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Cardname" Width="5*" Binding="{Binding Path=CardName}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                            <Setter Property="FontSize" Value="18"/>
+                            <Setter Property="Margin" Value="5,0,0,0"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+            </DataGrid.Columns>
+            <DataGrid.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Open in Explorer" Click="OpenInExplorerClicked"></MenuItem>
+                    <MenuItem Header="Edit amount" Click="EditAmountClicked"></MenuItem>
+                    <MenuItem Header="Delete card" Click="DeleteCardClicked"></MenuItem>
+                </ContextMenu>
+            </DataGrid.ContextMenu>
+        </DataGrid>
+        <TextBlock Grid.Row="1" VerticalAlignment="Top" TextAlignment="Center" Margin="5">Preview Image Scale (0 to 10, Left Click to show)</TextBlock>
+        <Slider Name="Scale" Minimum="0" Maximum="10" Value="2" Grid.Row="1" VerticalAlignment="Bottom"
+                Margin="5, 10" IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="ScaleChanged"></Slider>
+        <Button Grid.Row="1" Grid.Column="1" Margin="5" Click="SelectFileClicked">Select Image(s)</Button>
     </Grid>
 </Window>

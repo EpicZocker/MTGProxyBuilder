@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -6,17 +7,19 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using MTGProxyBuilder.Main.Classes;
 using Image = System.Drawing.Image;
+using System.Diagnostics;
 
 namespace MTGProxyBuilder.Main.Windows
 {
 	public partial class CustomCardsWindow : Window
 	{
-		private List<CustomCard> CustomCards;
-		private byte[] CurrentImage;
+		private List<CustomCard> CustomCards = new List<CustomCard>();
+		private HoverImage HoverImg = new HoverImage();
 		
         public CustomCardsWindow()
         {
@@ -36,80 +39,46 @@ namespace MTGProxyBuilder.Main.Windows
 
         private void SelectFileClicked(object sender, RoutedEventArgs e)
         {
-	        CommonOpenFileDialog dialog = new CommonOpenFileDialog();
-	        dialog.DefaultDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-	        dialog.EnsureFileExists = true;
-	        dialog.Filters.Add(new CommonFileDialogFilter("Images", "png, jpg, jpeg"));
+            HoverImg.Owner = this;
+            CommonOpenFileDialog dialog = new CommonOpenFileDialog
+            {
+                DefaultDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                EnsureFileExists = true,
+                Multiselect = true,
+            };
+            dialog.Filters.Add(new CommonFileDialogFilter("Images", "png, jpg, jpeg"));
 	        if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
 	        {
-		        ImagePathBox.Text = dialog.FileName;
-				LoadImageFromPath(dialog.FileName);
-			}
-        }
-
-        private void AddCardToListButton(object sender, RoutedEventArgs e)
-        {
-	        if (CurrentImage != null)
-	        {
-		        if (CustomCards == null)
-		        {
-			        CustomCards = new List<CustomCard>();
-			        CardGrid.ItemsSource = CustomCards;
-		        }
-
-		        CustomCards.Add(new CustomCard()
-		        {
-				    Amount = int.Parse(AmountText.Text),
-				    CardName = CardnameBox.Text,
-				    CardImage = CurrentImage
-		        });
-
-		        MessageBoxResult mb = MessageBox.Show("Card added!", "Card added");
-		        IsEnabled = false;
-		        if (mb == MessageBoxResult.OK)
-		        {
-			        IsEnabled = true;
-			        AmountText.Text = "1";
-			        CardnameBox.Text = "";
-			        ImagePathBox.Text = "";
-			        CardImage.Source = null;
-			        CurrentImage = null;
-		        }
-
-		        CardGrid.Items.Refresh();
-	        }
+				foreach(string s in dialog.FileNames)
+					LoadImageFromPath(s);
+                if (CustomCards != null)
+                {
+                    CardGrid.ItemsSource = CustomCards;
+                    CardGrid.Items.Refresh();
+                }
+            }
         }
 		
 		private void LoadImageFromPath(string path)
         {
-	        Image img = Image.FromFile(path);
-	        using (MemoryStream ms = new MemoryStream())
-	        {
-		        img.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
-		        ms.Position = 0;
+            Image img = Image.FromFile(path);
+            using (MemoryStream ms = new MemoryStream())
+            {
+                img.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                ms.Position = 0;
 
-		        BitmapImage bi = new BitmapImage();
-		        bi.BeginInit();
-		        bi.CacheOption = BitmapCacheOption.OnLoad;
-		        bi.StreamSource = ms;
-		        bi.EndInit();
-		        CurrentImage = ms.ToArray();
-
-				CardImage.Source = bi;
-		        img.Dispose();
-	        }
-		}
-
-        private void CheckFile(object sender, RoutedEventArgs e)
-        {
-	        TextBox tb = e.Source as TextBox;
-	        if (!File.Exists(tb.Text))
-	        {
-		        tb.Text = "";
-		        CardImage.Source = null;
-		        CurrentImage = null;
-	        }
-	        else LoadImageFromPath(tb.Text);
+                BitmapImage bi = new BitmapImage();
+                bi.BeginInit();
+                bi.CacheOption = BitmapCacheOption.OnLoad;
+                bi.StreamSource = ms;
+                bi.EndInit();
+                if (CustomCards.Find(e => e.CardName == Path.GetFileName(path)) != null)
+                    CustomCards.Find(e => e.CardName == Path.GetFileName(path)).Amount++;
+                else
+				    CustomCards.Add(new CustomCard() { Amount = 1, CardName = Path.GetFileName(path),
+                        CardImage = ms.ToArray(), Directory = Path.GetDirectoryName(path) });
+                img.Dispose();
+            }
         }
 
 		private void NumberInputCheck(object sender, TextCompositionEventArgs e)
@@ -123,5 +92,66 @@ namespace MTGProxyBuilder.Main.Windows
 			if (e.Command == ApplicationCommands.Copy || e.Command == ApplicationCommands.Cut || e.Command == ApplicationCommands.Paste)
 				e.Handled = true;
 		}
-	}
+
+        private void CardGridLeftClick(object sender, MouseEventArgs e)
+        {
+            if (Scale.Value == 0)
+                return;
+            HitTestResult hitTestResult = VisualTreeHelper.HitTest(CardGrid, e.GetPosition(CardGrid));
+            DataGridRow dataGridRow = hitTestResult.VisualHit.GetParentOfType<DataGridRow>();
+            if(dataGridRow != null)
+            {
+                int index = dataGridRow.GetIndex();
+                HoverImg.CardImage.Source = LoadImage(CustomCards[index].CardImage);
+                HoverImg.Left = System.Windows.Forms.Cursor.Position.X;
+                HoverImg.Top = System.Windows.Forms.Cursor.Position.Y;
+                HoverImg.Visibility = Visibility.Visible;
+            }
+            else HoverImg.Visibility = Visibility.Hidden;
+        }
+
+        private BitmapImage LoadImage(byte[] imageData)
+        {
+            if (imageData == null || imageData.Length == 0)
+                return null;
+            BitmapImage image = new BitmapImage();
+            using (MemoryStream mem = new MemoryStream(imageData))
+            {
+                mem.Position = 0;
+                image.BeginInit();
+                image.CreateOptions = BitmapCreateOptions.PreservePixelFormat;
+                image.CacheOption = BitmapCacheOption.OnLoad;
+                image.UriSource = null;
+                image.StreamSource = mem;
+                image.EndInit();
+            }
+            image.Freeze();
+            return image;
+        }
+
+        private void ScaleChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            HoverImg.Width = 149 * e.NewValue;
+            HoverImg.Height = 208 * e.NewValue;
+        }
+
+        private void OpenInExplorerClicked(object sender, RoutedEventArgs e)
+        {
+            Process.Start(CustomCards[CardGrid.SelectedIndex].Directory);
+        }
+
+        private void EditAmountClicked(object sender, RoutedEventArgs e)
+        {
+            EditAmountWindow eaw = new EditAmountWindow();
+            eaw.ShowDialog();
+            CustomCards[CardGrid.SelectedIndex].Amount = eaw.NewAmount;
+            CardGrid.Items.Refresh();
+        }
+
+        private void DeleteCardClicked(object sender, RoutedEventArgs e)
+        {
+            CustomCards.RemoveAt(CardGrid.SelectedIndex);
+            CardGrid.Items.Refresh();
+        }
+    }
 }

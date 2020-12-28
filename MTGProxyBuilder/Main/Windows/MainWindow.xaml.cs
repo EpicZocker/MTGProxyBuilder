@@ -87,7 +87,7 @@ namespace MTGProxyBuilder.Main.Windows
 
 		private void PrintPDF()
 		{
-			Dictionary<byte[], string> imagesWithBorder = new Dictionary<byte[], string>();
+			List<ImageWithBorder> imagesWithBorder = new List<ImageWithBorder>();
 			WebClient webClient = new WebClient();
 
 			Dispatcher.Invoke(() =>
@@ -111,9 +111,9 @@ namespace MTGProxyBuilder.Main.Windows
 
 					for (int j = 0; j < card.Amount; j++)
 					{
-						imagesWithBorder.Add(img, selectedEdition.BorderColor);
+						imagesWithBorder.Add(new ImageWithBorder(img, selectedEdition.BorderColor));
 						if (backFace != null)
-							imagesWithBorder.Add(backFace, selectedEdition.BorderColor);
+							imagesWithBorder.Add(new ImageWithBorder(backFace, selectedEdition.BorderColor));
 					}
 				}
 			}
@@ -121,7 +121,7 @@ namespace MTGProxyBuilder.Main.Windows
 			if (CustomCards != null)
 				foreach (CustomCard cca in CustomCards)
 					for(int i = 0; i < cca.Amount; i++)
-						imagesWithBorder.Add(cca.CardImage, "Black");
+						imagesWithBorder.Add(new ImageWithBorder(cca.CardImage, "Black"));
 
 			Dispatcher.Invoke(() => Info.TextBlock.Text = "Building PDF..." );
 
@@ -147,11 +147,11 @@ namespace MTGProxyBuilder.Main.Windows
 				{
 					Dispatcher.Invoke(() => Info.TextBlock.Text = "Drawing images, Progress: " + (j + i * 9) + "/" + imagesWithBorder.Count);
 
-					MemoryStream mem = new MemoryStream(imagesWithBorder.Keys.Skip(i * 9).ToList()[j - 1]);
+					MemoryStream mem = new MemoryStream(imagesWithBorder.Skip(i * 9).ToList()[j - 1].Image);
 					if (UserSettings.FillCorners)
 					{
 						XBrush cornerBrush = null;
-						string currentColor = imagesWithBorder.Values.Skip(i * 9).ToList()[j - 1];
+						string currentColor = imagesWithBorder.Skip(i * 9).ToList()[j - 1].BorderColor;
 						switch (currentColor.ToLower())
 						{
 							case "black": cornerBrush = new XSolidBrush(XColor.FromArgb(23, 20, 15));

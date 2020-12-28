@@ -80,6 +80,7 @@
     </ApplicationDefinition>
     <Compile Include="Main\Classes\CustomCard.cs" />
     <Compile Include="Main\Classes\Edition.cs" />
+    <Compile Include="Main\Classes\ImageWithBorder.cs" />
     <Compile Include="Main\Windows\CustomCardsWindow.xaml.cs">
       <DependentUpon>CustomCardsWindow.xaml</DependentUpon>
     </Compile>
@@ -88,6 +89,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Main\Windows\EditAmountWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Main\Windows\HoverImage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -104,6 +109,9 @@
     <Compile Include="Main\Classes\ExtensionMethods.cs" />
     <Compile Include="Main\Windows\EditAmountWindow.xaml.cs">
       <DependentUpon>EditAmountWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Main\Windows\HoverImage.xaml.cs">
+      <DependentUpon>HoverImage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Main\Windows\MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
@@ -167,7 +175,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="ilmerge">
-      <Version>3.0.29</Version>
+      <Version>3.0.41</Version>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json">
       <Version>12.0.3</Version>

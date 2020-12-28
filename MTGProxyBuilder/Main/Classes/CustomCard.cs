@@ -7,5 +7,6 @@
 		public int Amount { get; set; }
 
 		public byte[] CardImage;
+		public string Directory;
     }
 }
