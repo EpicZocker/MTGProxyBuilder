@@ -34,5 +34,10 @@ namespace MTGProxyBuilder.Main.Classes
 				return parent as T;
 			return GetParentOfType<T>(parent);
 		}
+
+		public static string[] Split(this string s, string splitString)
+		{
+			return s.Split(new[] { splitString }, StringSplitOptions.RemoveEmptyEntries);
+		}
 	}
 }

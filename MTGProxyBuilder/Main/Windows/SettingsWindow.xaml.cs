@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -12,8 +13,6 @@ namespace MTGProxyBuilder.Main.Windows
 {
 	public partial class SettingsWindow : Window
 	{
-		private string ProxySizePercentage { get; set; }
-
 		public SettingsWindow()
 		{
 			InitializeComponent();

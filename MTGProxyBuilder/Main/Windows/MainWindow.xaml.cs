@@ -36,16 +36,21 @@ namespace MTGProxyBuilder.Main.Windows
 		private InfoWindow Info = new InfoWindow();
 		private string PDFOutputPath;
 
+		private readonly string DecklistSavePath = AppDomain.CurrentDomain.BaseDirectory + Path.DirectorySeparatorChar + "MTGProxyBuilder-DecklistSave.txt";
+		private string DecklistFileContent;
+
 		public MainWindow()
 		{
 			InitializeComponent();
 			DeleteOldFile();
+			ImportSavedDecklist();
+			AppDomain.CurrentDomain.UnhandledException += LogAllExceptions;
 		}
 
 		private List<Card> InterpretCardlist()
 		{
 			string[] cards = null;
-			Dispatcher.Invoke(() => { cards = Decklist.Text.Split(new[] { NewLine }, StringSplitOptions.RemoveEmptyEntries); });
+			Dispatcher.Invoke(() => { cards = Decklist.Text.Split(NewLine); });
 			cards.ToList().ForEach(e => e.Trim());
 
 			List<Card> cardAmounts = new List<Card>();
@@ -225,7 +230,7 @@ namespace MTGProxyBuilder.Main.Windows
 				Dispatcher.Invoke(() => Info.TextBlock.Text = "Parsing decklist, Progress: " + ++progress + "/" + allCards.Count);
 				foreach (JToken jt in pulledCards["data"].Children())
 				{
-					List<string> cardNames = jt["name"].Value<string>().Split(new[] { " // " }, StringSplitOptions.RemoveEmptyEntries).ToList();
+					List<string> cardNames = jt["name"].Value<string>().Split(" // ").ToList();
 					string displayName = cardNames.Count > 1 ? cardNames[0] + " // " + cardNames[1] : cardNames[0];
 					string regexPattern = @"[^a-zA-Z0-9]";
 					for (int i = 0; i < cardNames.Count; i++)
@@ -310,7 +315,8 @@ namespace MTGProxyBuilder.Main.Windows
 
 							if (singlePrint["card_faces"] != null)
 								if(singlePrint["card_faces"].Children().Count() > 0)
-									ed.BackFaceURL = singlePrint["card_faces"][1]["image_uris"]["png"].Value<string>();
+									if(singlePrint["card_faces"][1]["image_uris"] != null)
+										ed.BackFaceURL = singlePrint["card_faces"][1]["image_uris"]["png"].Value<string>();
 
 							editions.Add(ed);
 						}
@@ -426,6 +432,8 @@ namespace MTGProxyBuilder.Main.Windows
 		{
 			CustomCardsWindow ccw = new CustomCardsWindow();
 			ccw.Owner = this;
+			if(!string.IsNullOrEmpty(DecklistFileContent) && DecklistFileContent?.Split(NewLine + NewLine).Length > 1)
+				ccw.LoadImages(DecklistFileContent.Split(NewLine + NewLine)[1].Split(NewLine));
 			ccw.ShowDialog();
 		}
 
@@ -433,7 +441,12 @@ namespace MTGProxyBuilder.Main.Windows
 		{
 			string oldPath = Directory.GetCurrentDirectory() + Path.DirectorySeparatorChar + "OldMTGProxyBuilder.exe";
 			if (File.Exists(oldPath))
+			{
 				File.Delete(oldPath);
+				MessageBox.Show("Updates: \nadded global exception logging\nfixed backface bug with adventure cards\n" +
+					"decklist is now saved on close/crash\nupdated settings\nnew features after update\nadded clear all button in custom cards menu",
+					"New features", MessageBoxButton.OK);
+			}
 		}
 
 		private void DisableTab(object sender, KeyEventArgs e)
@@ -444,6 +457,8 @@ namespace MTGProxyBuilder.Main.Windows
 
 		private void ApplicationClosing(object sender, CancelEventArgs e)
 		{
+			if (UserSettings.DecklistSaveOnClose)
+				ExportDecklist();
 			Exit(0);
 		}
 
@@ -467,6 +482,50 @@ namespace MTGProxyBuilder.Main.Windows
 		{
 			Cards.RemoveAt(CardGrid.SelectedIndex);
 			CardGrid.Items.Refresh();
+		}
+		
+		private void ExportDecklist()
+		{
+			if (!string.IsNullOrEmpty(Decklist.Text) || (CustomCards != null && CustomCards?.Count != 0))
+			{
+				using (StreamWriter sw = new StreamWriter(DecklistSavePath))
+				{
+					sw.WriteLine(Decklist.Text + NewLine);
+					if (UserSettings.DecklistSaveCustomCards)
+						if (CustomCards != null && CustomCards?.Count != 0)
+							sw.Write(CustomCards.Aggregate("", (x, y) => x + y.Directory + Path.DirectorySeparatorChar + y.CardName + NewLine));
+					sw.Flush();
+				}
+			}
+		}
+
+		private void LogAllExceptions(object sender, UnhandledExceptionEventArgs e)
+		{
+			if (UserSettings.ExceptionLogging)
+			{
+				using (StreamWriter sw = new StreamWriter("MTGProxyBuilder.log"))
+				{
+					Exception ex = e.ExceptionObject as Exception;
+					sw.WriteLine(ex.Message);
+					sw.WriteLine(ex.StackTrace);
+					sw.Flush();
+				}
+			}
+
+			if (UserSettings.DecklistSaveOnCrash)
+				ExportDecklist();
+		}
+
+		private void ImportSavedDecklist()
+		{
+			if (File.Exists(DecklistSavePath))
+			{
+				using (StreamReader sr = new StreamReader(DecklistSavePath))
+				{
+					DecklistFileContent = sr.ReadToEnd();
+					Decklist.Text = DecklistFileContent.Split(NewLine + NewLine)[0];
+				}
+			}
 		}
 	}
 }
