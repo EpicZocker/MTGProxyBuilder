@@ -79,5 +79,10 @@ namespace MTGProxyBuilder.Main.Windows
 			if (e.Command == ApplicationCommands.Copy || e.Command == ApplicationCommands.Cut || e.Command == ApplicationCommands.Paste)
 				e.Handled = true;
 		}
+
+		private void OpenChangelogClicked(object sender, RoutedEventArgs e)
+		{
+			new Changelog().Show();
+		}
 	}
 }

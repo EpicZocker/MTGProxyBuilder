@@ -100,12 +100,23 @@
 				<Grid Grid.Row="8">
 					<Grid.ColumnDefinitions>
 						<ColumnDefinition Width="3*"/>
-						<ColumnDefinition Width="9*"/>
+						<ColumnDefinition Width="3*"/>
+						<ColumnDefinition Width="2*"/>
+						<ColumnDefinition Width="4*"/>
 					</Grid.ColumnDefinitions>
 					<CheckBox Grid.Column="0" Margin="0,5,5,5" FlowDirection="RightToLeft"
 					   VerticalAlignment="Center" HorizontalAlignment="Left" 
 					   IsChecked="{Binding Source={x:Static properties:Settings.Default}, Path=FillCorners,
 								   UpdateSourceTrigger=PropertyChanged}">?Fill corners</CheckBox>
+					<CheckBox Grid.Column="1" Margin="5" FlowDirection="RightToLeft"
+					   VerticalAlignment="Center" HorizontalAlignment="Left" 
+					   IsChecked="{Binding Source={x:Static properties:Settings.Default}, Path=CutLines,
+								   UpdateSourceTrigger=PropertyChanged}">?Cut lines</CheckBox>
+					<CheckBox Grid.Column="2" Margin="5" FlowDirection="RightToLeft"
+					   VerticalAlignment="Center" HorizontalAlignment="Left" 
+					   IsChecked="{Binding Source={x:Static properties:Settings.Default}, Path=PrintA3,
+								   UpdateSourceTrigger=PropertyChanged}">?A3</CheckBox>
+					<Button Grid.Column="3" Margin="5,5,0,5" Click="OpenChangelogClicked">Open changelog</Button>
 				</Grid>
 			</Grid>
 		</TabItem>

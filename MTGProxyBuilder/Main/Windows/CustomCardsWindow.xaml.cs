@@ -32,7 +32,7 @@ namespace MTGProxyBuilder.Main.Windows
 			if (CustomCards != null)
 			{
 				mw.CustomCards = CustomCards;
-				mw.CreatePDFButton.IsEnabled = CustomCards.Count != 0;
+				mw.CreatePDFButton.IsEnabled = CustomCards.Count != 0 || mw.CardGrid.Items.Count != 0;
 			}
 			mw.Focus();
 		}

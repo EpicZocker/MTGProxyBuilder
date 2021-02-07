@@ -49,14 +49,14 @@
                             <Setter Property="VerticalContentAlignment" Value="Center"/>
                         </Style>
                     </DataGrid.ColumnHeaderStyle>
-                    <DataGrid.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="Open in Scryfall" Click="CardGridContextMenuOpenInScryfallClicked"></MenuItem>
-                            <MenuItem Header="Edit amount" Click="CardGridContextMenuEditAmountClicked"></MenuItem>
-                            <MenuItem Header="Delete card" Click="CardGridContextMenuDeleteClicked"></MenuItem>
-                        </ContextMenu>
-                    </DataGrid.ContextMenu>
-                    <DataGrid.Columns>
+					<DataGrid.ContextMenu>
+						<ContextMenu>
+							<MenuItem Header="Open in Scryfall" Click="CardGridContextMenuOpenInScryfallClicked"></MenuItem>
+							<MenuItem Header="Edit amount" Click="CardGridContextMenuEditAmountClicked"></MenuItem>
+							<MenuItem Header="Delete card" Click="CardGridContextMenuDeleteClicked"></MenuItem>
+						</ContextMenu>
+					</DataGrid.ContextMenu>
+					<DataGrid.Columns>
                         <DataGridTextColumn Header="#" Width="1*" Binding="{Binding Path=Amount}">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">

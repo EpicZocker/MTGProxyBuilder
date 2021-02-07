@@ -36,14 +36,14 @@ namespace MTGProxyBuilder.Main.Windows
 		private InfoWindow Info = new InfoWindow();
 		private string PDFOutputPath;
 
-		private readonly string DecklistSavePath = AppDomain.CurrentDomain.BaseDirectory + Path.DirectorySeparatorChar + "MTGProxyBuilder-DecklistSave.txt";
-		private string DecklistFileContent;
+		private readonly string DecklistSavePath = AppDomain.CurrentDomain.BaseDirectory + Path.DirectorySeparatorChar;
+		private string DecklistFileContent, CustomCardsFileContent;
 
 		public MainWindow()
 		{
 			InitializeComponent();
 			DeleteOldFile();
-			ImportSavedDecklist();
+			ImportSavedDecklists();
 			AppDomain.CurrentDomain.UnhandledException += LogAllExceptions;
 		}
 
@@ -181,15 +181,39 @@ namespace MTGProxyBuilder.Main.Windows
 					}
 				}
 
-				x = UserSettings.OffsetLeft;
-				y = UserSettings.OffsetTop;
+				if (UserSettings.GapX == 0 && UserSettings.GapY == 0)
+				{
+					//Top
+					DrawCutLine(1, 0);
+					DrawCutLine(2, 0);
+					//Bottom
+					DrawCutLine(1, 3);
+					DrawCutLine(2, 3);
+					//Left
+					DrawCutLine(0, 1);
+					DrawCutLine(0, 2);
+					//Right
+					DrawCutLine(3, 1);
+					DrawCutLine(3, 2);
+				}
 
 				pdf.AddPage(page);
 				page = new PdfPage(pdf);
 				draw = XGraphics.FromPdfPage(page);
 			}
 
-			pdf.Save(PDFOutputPath);
+			while(true)
+			{
+				try
+				{ 
+					pdf.Save(PDFOutputPath); 
+					break; 
+				}
+				catch (Exception) 
+				{ 
+					MessageBox.Show("PDF could not be saved. Check if it is currently used by another process, then try again.", "Error");
+				}
+			}
 			pdf.Close();
 
 			Dispatcher.Invoke(() =>
@@ -198,6 +222,17 @@ namespace MTGProxyBuilder.Main.Windows
 				IsEnabled = true;
 				Focus();
 			});
+
+			void DrawCutLine(int x, int y)
+			{
+				XPoint xp = new XPoint(cardWidth * x + UserSettings.OffsetLeft, cardHeight * y + UserSettings.OffsetTop);
+				if (y == 0 || y == 3)
+					draw.DrawLine(XPens.Black, xp,
+						new XPoint(cardWidth * x + UserSettings.OffsetLeft, cardHeight * y + UserSettings.OffsetTop - (y < 3 ? 20 : -20)));
+				else
+					draw.DrawLine(XPens.Black, xp,
+						new XPoint(cardWidth * x + UserSettings.OffsetLeft - (x < 3 ? 20 : -20), cardHeight * y + UserSettings.OffsetTop));
+			}
 		}
 
 		private async void CustomizeCardsClicked(object sender, RoutedEventArgs eventArgs)
@@ -430,10 +465,9 @@ namespace MTGProxyBuilder.Main.Windows
 
 		private void AddCustomImagesButtonClicked(object sender, RoutedEventArgs e)
 		{
-			CustomCardsWindow ccw = new CustomCardsWindow();
-			ccw.Owner = this;
-			if(!string.IsNullOrEmpty(DecklistFileContent) && DecklistFileContent?.Split(NewLine + NewLine).Length > 1)
-				ccw.LoadImages(DecklistFileContent.Split(NewLine + NewLine)[1].Split(NewLine));
+			CustomCardsWindow ccw = new CustomCardsWindow { Owner = this };
+			if (!string.IsNullOrEmpty(CustomCardsFileContent))
+				ccw.LoadImages(CustomCardsFileContent.Split(NewLine));
 			ccw.ShowDialog();
 		}
 
@@ -443,9 +477,7 @@ namespace MTGProxyBuilder.Main.Windows
 			if (File.Exists(oldPath))
 			{
 				File.Delete(oldPath);
-				MessageBox.Show("Updates: \nadded global exception logging\nfixed backface bug with adventure cards\n" +
-					"decklist is now saved on close/crash\nupdated settings\nnew features after update\nadded clear all button in custom cards menu",
-					"New features", MessageBoxButton.OK);
+				Task.Run(() => new Changelog().Show());
 			}
 		}
 
@@ -458,7 +490,7 @@ namespace MTGProxyBuilder.Main.Windows
 		private void ApplicationClosing(object sender, CancelEventArgs e)
 		{
 			if (UserSettings.DecklistSaveOnClose)
-				ExportDecklist();
+				SaveDecklistCustomCardsAndGrid();
 			Exit(0);
 		}
 
@@ -484,17 +516,17 @@ namespace MTGProxyBuilder.Main.Windows
 			CardGrid.Items.Refresh();
 		}
 		
-		private void ExportDecklist()
+		private void SaveDecklistCustomCardsAndGrid()
 		{
 			if (!string.IsNullOrEmpty(Decklist.Text) || (CustomCards != null && CustomCards?.Count != 0))
 			{
-				using (StreamWriter sw = new StreamWriter(DecklistSavePath))
+				using (StreamWriter sw = new StreamWriter(DecklistSavePath + "MTGProxyBuilder-DecklistSave.txt") { AutoFlush = true })
 				{
-					sw.WriteLine(Decklist.Text + NewLine);
+					sw.WriteLine(Decklist.Text);
 					if (UserSettings.DecklistSaveCustomCards)
 						if (CustomCards != null && CustomCards?.Count != 0)
-							sw.Write(CustomCards.Aggregate("", (x, y) => x + y.Directory + Path.DirectorySeparatorChar + y.CardName + NewLine));
-					sw.Flush();
+							using (StreamWriter sw2 = new StreamWriter(DecklistSavePath + "MTGProxyBuilder-CustomCardsSave.txt") { AutoFlush = true })
+								sw2.Write(CustomCards.Aggregate("", (x, y) => x + y.Directory + Path.DirectorySeparatorChar + y.CardName + NewLine));
 				}
 			}
 		}
@@ -513,19 +545,23 @@ namespace MTGProxyBuilder.Main.Windows
 			}
 
 			if (UserSettings.DecklistSaveOnCrash)
-				ExportDecklist();
+				SaveDecklistCustomCardsAndGrid();
 		}
 
-		private void ImportSavedDecklist()
+		private void ImportSavedDecklists()
 		{
-			if (File.Exists(DecklistSavePath))
+			if (File.Exists(DecklistSavePath + "MTGProxyBuilder-DecklistSave.txt"))
 			{
-				using (StreamReader sr = new StreamReader(DecklistSavePath))
+				using (StreamReader sr = new StreamReader(DecklistSavePath + "MTGProxyBuilder-DecklistSave.txt"))
 				{
 					DecklistFileContent = sr.ReadToEnd();
 					Decklist.Text = DecklistFileContent.Split(NewLine + NewLine)[0];
 				}
 			}
+
+			if (File.Exists(DecklistSavePath + "MTGProxyBuilder-CustomCardsSave.txt"))
+				using (StreamReader sr = new StreamReader(DecklistSavePath + "MTGProxyBuilder-CustomCardsSave.txt"))
+					CustomCardsFileContent = sr.ReadToEnd();
 		}
 	}
 }

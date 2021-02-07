@@ -81,9 +81,16 @@
     <Compile Include="Main\Classes\CustomCard.cs" />
     <Compile Include="Main\Classes\Edition.cs" />
     <Compile Include="Main\Classes\ImageWithBorder.cs" />
+    <Compile Include="Main\Windows\Changelog.xaml.cs">
+      <DependentUpon>Changelog.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Main\Windows\CustomCardsWindow.xaml.cs">
       <DependentUpon>CustomCardsWindow.xaml</DependentUpon>
     </Compile>
+    <Page Include="Main\Windows\Changelog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Main\Windows\CustomCardsWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
